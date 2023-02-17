@@ -1,6 +1,6 @@
 # ESSL Epush Server Docker Container
 
-## Authors
+## Author
 
 - [@kumarpsr](https://github.com/kumarpsr9/)
 
