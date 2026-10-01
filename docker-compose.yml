@@ -1,8 +1,7 @@
-version: '3'
 services:
   webapp:
     build:
-      context: ./
+      context: ./iclock_server
       dockerfile: Dockerfile
     image: iclock
     ports:
@@ -10,4 +9,16 @@ services:
     restart: always
     volumes:
         - ./logfile.txt:/usr/local/tomcat/webapps/iclock/WEB-INF/logfile.txt
-  
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    image: epush-api
+    env_file: .env
+    environment:
+      # The container always listens on 3000; API_PORT in .env picks the host port.
+      API_PORT: 3000
+    ports:
+      - ${API_PORT:-3000}:3000
+    restart: always

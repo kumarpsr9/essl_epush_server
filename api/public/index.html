@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hostel Movement Register</title>
+<meta name="description" content="Day-wise in/out report for Aditya hostel students by gate device.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F3F5F8;
+  --surface: #FFFFFF;
+  --ink: #172033;
+  --muted: #5A6476;
+  --line: #D9DEE6;
+  --in: #17795E;
+  --in-soft: #DDF0E9;
+  --out: #B45309;
+  --out-soft: #FBEBD9;
+  --none: #8A93A3;
+  --accent: #2B4C9B;
+  --accent-soft: #E3E9F7;
+  --radius-lg: 14px;
+  --radius-sm: 8px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F141D; --surface: #171E2B; --ink: #E7EBF2; --muted: #9AA4B5; --line: #2A3344;
+    --in: #4CC29A; --in-soft: #173A31; --out: #F0A04B; --out-soft: #43301A; --none: #6E788A;
+    --accent: #93AAF0; --accent-soft: #222E4A; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F141D; --surface: #171E2B; --ink: #E7EBF2; --muted: #9AA4B5; --line: #2A3344;
+  --in: #4CC29A; --in-soft: #173A31; --out: #F0A04B; --out-soft: #43301A; --none: #6E788A;
+  --accent: #93AAF0; --accent-soft: #222E4A; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.5 "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Top bar */
+.topbar { border-bottom: 1px solid var(--line); background: var(--surface); }
+.topbar .wrap { display: flex; align-items: center; gap: 16px; min-height: 64px; flex-wrap: wrap; padding-block: 10px; }
+.brand { font-weight: 700; font-size: 1.05rem; margin-right: auto; }
+.brand small { display: block; font-weight: 400; color: var(--muted); font-size: .85rem; }
+.controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.field { display: flex; align-items: center; gap: 6px; }
+.field label { color: var(--muted); font-size: .85rem; }
+input[type="date"], input[type="time"], input[type="search"], input[type="password"] {
+  height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface);
+}
+.btn {
+  height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.icon { width: 38px; padding: 0; display: inline-grid; place-items: center; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+:root[data-theme="dark"] .btn.primary { color: #0F141D; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #0F141D; } }
+.btn.quiet { border-color: transparent; background: transparent; color: var(--muted); }
+.btn svg { width: 18px; height: 18px; }
+
+/* Headline */
+.summary { padding: 40px 0 28px; }
+.summary h1 {
+  margin: 0; max-width: 22ch; font-size: clamp(2rem, 4.6vw, 3.4rem); line-height: 1.08; font-weight: 800; letter-spacing: -0.02em;
+}
+.summary p { margin: 14px 0 0; color: var(--muted); font-size: 1.1rem; max-width: 62ch; }
+.status-line { margin-top: 18px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: .9rem; }
+.live { display: inline-flex; align-items: center; gap: 8px; }
+.live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--in); }
+.live.past::before { background: var(--none); }
+
+/* Gate list */
+.gates { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; }
+.gates h2, .students h2 { font-size: 1.15rem; margin: 0; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 20px 12px; flex-wrap: wrap; }
+.panel-head p { margin: 0; color: var(--muted); font-size: .9rem; }
+.gate {
+  display: grid; grid-template-columns: minmax(170px, 1.1fr) 2.4fr minmax(160px, .9fr); gap: 20px; align-items: center;
+  width: 100%; text-align: left; padding: 16px 20px; border: 0; border-top: 1px solid var(--line); background: transparent; cursor: pointer;
+  position: relative;
+}
+.gate:hover { background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+.gate[aria-pressed="true"] { background: var(--accent-soft); }
+.gate[aria-pressed="true"]::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); }
+.gate-name { font-weight: 700; }
+.gate-meta { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: .85rem; margin-top: 2px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--none); flex: none; }
+.dot.on { background: var(--in); }
+.split { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--line); }
+.split .o { background: var(--out); }
+.split .i { background: var(--in); }
+.split-legend { display: flex; justify-content: space-between; margin-top: 6px; font-size: .9rem; }
+.split-legend .o { color: var(--out); font-weight: 700; }
+.split-legend .i { color: var(--in); font-weight: 700; }
+.gate-punches { color: var(--muted); font-size: .88rem; line-height: 1.4; }
+.gate-punches b { color: var(--ink); font-weight: 700; }
+.gate.all .gate-name { font-size: 1.05rem; }
+
+/* Students */
+.students { margin: 28px 0 56px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 0 20px 14px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.chip .n { color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.chip[aria-pressed="true"] .n { color: inherit; opacity: .75; }
+.toolbar .search { margin-left: auto; min-width: 220px; }
+.toolbar .search input { width: 100%; }
+
+.table-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
+table { width: 100%; border-collapse: collapse; min-width: 760px; }
+th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: .85rem; color: var(--muted); font-weight: 500; background: var(--surface); position: sticky; top: 0; }
+th button { border: 0; background: none; padding: 0; color: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+th[aria-sort="ascending"] button::after { content: "▲"; font-size: .7em; }
+th[aria-sort="descending"] button::after { content: "▼"; font-size: .7em; }
+td.num, th.num { text-align: right; }
+.name { font-weight: 700; }
+.code { color: var(--muted); font-size: .85rem; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: .85rem; font-weight: 700; }
+.pill.OUT { background: var(--out-soft); color: var(--out); }
+.pill.IN { background: var(--in-soft); color: var(--in); }
+.pill.none { background: transparent; color: var(--muted); font-weight: 400; padding-left: 0; }
+.muted { color: var(--muted); }
+.expand { width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; color: var(--muted); }
+.expand:hover { background: var(--accent-soft); }
+.expand svg { width: 16px; height: 16px; transition: transform .15s; }
+.expand[aria-expanded="true"] svg { transform: rotate(90deg); }
+tr.detail td { background: var(--bg); padding: 14px 16px 18px 64px; }
+.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.timeline li {
+  display: grid; grid-template-columns: auto auto; column-gap: 8px; align-items: baseline;
+  padding: 8px 12px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--line); border-left-width: 4px;
+}
+.timeline li.OUT { border-left-color: var(--out); }
+.timeline li.IN { border-left-color: var(--in); }
+.timeline .t { font-weight: 700; }
+.timeline .k { font-size: .85rem; }
+.timeline .g { grid-column: 1 / -1; color: var(--muted); font-size: .8rem; }
+.dupes { margin-top: 10px; color: var(--muted); font-size: .85rem; }
+
+.empty, .notice { padding: 40px 20px; text-align: center; color: var(--muted); }
+.notice.error { color: var(--out); }
+.notice .btn { margin-top: 12px; }
+.foot { padding: 12px 20px; color: var(--muted); font-size: .85rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+.loading .summary h1, .loading .gates, .loading .students { opacity: .55; transition: opacity .2s; }
+
+dialog { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); color: var(--ink); padding: 24px; width: min(420px, calc(100% - 32px)); }
+dialog::backdrop { background: rgb(15 20 29 / .5); }
+dialog h2 { margin: 0 0 6px; font-size: 1.2rem; }
+dialog p { margin: 0 0 16px; color: var(--muted); }
+dialog input { width: 100%; }
+dialog .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.form-error { color: var(--out); font-size: .9rem; margin-top: 8px; min-height: 1.2em; }
+
+@media (max-width: 760px) {
+  .wrap { padding: 0 16px; }
+  .gate { grid-template-columns: 1fr; gap: 10px; }
+  .toolbar .search { margin-left: 0; width: 100%; }
+  .summary { padding-top: 28px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print {
+  .topbar .controls, .toolbar, .expand, .foot button { display: none !important; }
+  body { background: #fff; }
+  .gates, .students { border-color: #bbb; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">Aditya Hostels<small>Student movement register</small></div>
+    <div class="controls">
+      <div class="field">
+        <button class="btn icon" id="prevDay" type="button" aria-label="Previous day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <label for="date" class="visually-hidden">Date</label>
+        <input type="date" id="date">
+        <button class="btn icon" id="nextDay" type="button" aria-label="Next day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+      <div class="field">
+        <label for="time">As of</label>
+        <input type="time" id="time">
+      </div>
+      <button class="btn" id="today" type="button">Today</button>
+      <button class="btn icon" id="refresh" type="button" aria-label="Refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button>
+      <button class="btn icon" id="settings" type="button" aria-label="API key settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="main" aria-busy="true">
+  <section class="summary" aria-live="polite">
+    <h1 id="headline">Loading today's register…</h1>
+    <p id="subline"></p>
+    <div class="status-line">
+      <span class="live" id="liveState"></span>
+      <span id="updated"></span>
+    </div>
+  </section>
+
+  <section class="gates" aria-labelledby="gatesTitle">
+    <div class="panel-head">
+      <h2 id="gatesTitle">Gates</h2>
+      <p>Students are counted at the gate where they last punched. Pick a gate to see only its students.</p>
+    </div>
+    <div id="gateList"></div>
+  </section>
+
+  <section class="students" aria-labelledby="studentsTitle">
+    <div class="panel-head">
+      <h2 id="studentsTitle">Students</h2>
+      <button class="btn" id="exportCsv" type="button">Download CSV</button>
+    </div>
+    <div class="toolbar">
+      <div class="chips" role="group" aria-label="Filter by status" id="chips"></div>
+      <div class="search">
+        <label for="search" class="visually-hidden">Search students</label>
+        <input type="search" id="search" placeholder="Search name or roll number" autocomplete="off">
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:48px"><span class="visually-hidden">Details</span></th>
+            <th data-sort="EmployeeName"><button type="button">Student</button></th>
+            <th data-sort="status"><button type="button">Status</button></th>
+            <th data-sort="firstOut"><button type="button">Went out</button></th>
+            <th data-sort="lastIn"><button type="button">Came back</button></th>
+            <th data-sort="lastPunch"><button type="button">Last punch</button></th>
+            <th data-sort="lastDeviceName"><button type="button">Last gate</button></th>
+            <th data-sort="punchCount" class="num"><button type="button">Punches</button></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="foot">
+      <span id="rowCount"></span>
+      <span>1st punch of the day is OUT, 2nd is IN, and so on. Repeat scans within <span id="dedup">60</span> seconds are ignored.</span>
+    </div>
+  </section>
+</main>
+
+<dialog id="keyDialog" aria-labelledby="keyTitle">
+  <form method="dialog" id="keyForm">
+    <h2 id="keyTitle">Enter the API key</h2>
+    <p>The report server needs its API key. You'll find it as API_KEY in the server's .env file. It's saved in this browser only.</p>
+    <label for="apiKey" class="visually-hidden">API key</label>
+    <input type="password" id="apiKey" autocomplete="off" required>
+    <div class="form-error" id="keyError" role="alert"></div>
+    <div class="actions">
+      <button class="btn quiet" value="cancel" type="button" id="keyCancel">Cancel</button>
+      <button class="btn primary" value="save" type="submit">Save key</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="report.js"></script>
+</body>
+</html>
