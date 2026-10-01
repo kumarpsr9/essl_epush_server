@@ -8,4 +8,6 @@ services:
     ports:
       - 8888:8080
     restart: always
+    volumes:
+        - ./logfile.txt:/usr/local/tomcat/webapps/iclock/WEB-INF/logfile.txt
   
