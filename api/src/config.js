@@ -1,4 +1,5 @@
 const path = require('path');
+const crypto = require('crypto');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
 const required = ['DB_HOST', 'DB_USER', 'DB_PASS', 'DB_NAME'];
@@ -11,6 +12,10 @@ module.exports = {
   port: Number(process.env.API_PORT || 3000),
   apiKey: process.env.API_KEY || '',
   corsOrigin: process.env.CORS_ORIGIN || '*',
+  // Signs login session cookies. If unset, a random one is used and sessions end on restart.
+  sessionSecret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  sessionSecretIsRandom: !process.env.SESSION_SECRET,
+  sessionHours: Number(process.env.SESSION_HOURS || 12),
   db: {
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT || 3306),

@@ -1,11 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const crypto = require('crypto');
 const path = require('path');
-const { apiKey, corsOrigin } = require('./config');
+const { corsOrigin } = require('./config');
 const { pool } = require('./db');
 const { asyncHandler } = require('./util');
+const auth = require('./auth');
 
 const app = express();
 // The report page is served over plain http on the LAN, so don't force https subresources.
@@ -13,7 +13,7 @@ app.use(helmet({ contentSecurityPolicy: { directives: { upgradeInsecureRequests:
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 
-// Static report page (no data in it; it calls /api with the key the user enters).
+// Static pages hold no data; the register page calls /api with the signed-in session.
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/health', asyncHandler(async (req, res) => {
@@ -21,15 +21,8 @@ app.get('/health', asyncHandler(async (req, res) => {
   res.json({ status: 'ok', db: 'up' });
 }));
 
-function requireApiKey(req, res, next) {
-  if (!apiKey) return next();
-  const given = Buffer.from(String(req.get('x-api-key') || ''));
-  const expected = Buffer.from(apiKey);
-  if (given.length === expected.length && crypto.timingSafeEqual(given, expected)) return next();
-  res.status(401).json({ error: 'Invalid or missing x-api-key header' });
-}
-
-app.use('/api', requireApiKey);
+app.use('/auth', auth.router);
+app.use('/api', auth.requireAuth);
 app.use('/api/devices', require('./routes/devices'));
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/logs', require('./routes/logs'));

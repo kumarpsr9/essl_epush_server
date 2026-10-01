@@ -1,16 +1,14 @@
 (() => {
   'use strict';
 
-  const API_BASE = location.protocol.startsWith('http') ? '' : 'http://localhost:3000';
-  const KEY_STORE = 'epush.apiKey';
   const REFRESH_MS = 60_000;
 
   const $ = (id) => document.getElementById(id);
   const els = {
-    main: $('main'), date: $('date'), time: $('time'), headline: $('headline'), subline: $('subline'),
-    liveState: $('liveState'), updated: $('updated'), gateList: $('gateList'), chips: $('chips'),
-    search: $('search'), rows: $('rows'), rowCount: $('rowCount'), dedup: $('dedup'),
-    keyDialog: $('keyDialog'), keyForm: $('keyForm'), apiKey: $('apiKey'), keyError: $('keyError'),
+    main: $('main'), date: $('date'), time: $('time'), dateText: $('dateText'),
+    headlineBox: $('headlineBox'), headlineIcon: $('headlineIcon'), headline: $('headline'), subline: $('subline'),
+    liveState: $('liveState'), updated: $('updated'), errorBox: $('errorBox'), kpis: $('kpis'),
+    gateList: $('gateList'), chips: $('chips'), search: $('search'), rows: $('rows'), rowCount: $('rowCount'), dedup: $('dedup'),
   };
 
   const state = {
@@ -33,38 +31,45 @@
   ];
 
   // ---------- helpers ----------
-  const store = {
-    get() { try { return localStorage.getItem(KEY_STORE) || ''; } catch { return ''; } },
-    set(v) { try { localStorage.setItem(KEY_STORE, v); } catch { /* private mode */ } },
-  };
-
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const hhmm = (dt) => (dt ? dt.slice(11, 16) : '');
   const todayIST = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-  const plural = (n, one, many) => `${n.toLocaleString('en-IN')} ${n === 1 ? one : many}`;
-  const fmtDate = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+  const num = (n) => n.toLocaleString('en-IN');
+  const plural = (n, one, many) => `${num(n)} ${n === 1 ? one : many}`;
+  // dd MMM yyyy, per DESIGN.md
+  const fmtDate = (d) => {
+    const t = new Date(`${d}T00:00:00`);
+    const day = t.toLocaleDateString('en-IN', { weekday: 'long' });
+    return `${day}, ${t.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+  };
   const shiftDate = (d, days) => {
     const t = new Date(`${d}T00:00:00Z`);
     t.setUTCDate(t.getUTCDate() + days);
     return t.toISOString().slice(0, 10);
   };
   const isLive = () => els.date.value === todayIST() && !els.time.value;
+  const dash = '<span class="dash" aria-label="none">–</span>';
 
   // LastPing is stored in UTC by the ePush server.
   function sinceText(utc) {
     if (!utc) return 'never connected';
     const mins = Math.round((Date.now() - Date.parse(`${utc.replace(' ', 'T')}Z`)) / 60000);
     if (mins < 2) return 'seen just now';
-    if (mins < 60) return `last seen ${mins} min ago`;
-    if (mins < 1440) return `last seen ${Math.round(mins / 60)} h ago`;
-    return `last seen ${Math.round(mins / 1440)} days ago`;
+    if (mins < 60) return `seen ${mins} min ago`;
+    if (mins < 1440) return `seen ${Math.round(mins / 60)} h ago`;
+    return `seen ${Math.round(mins / 1440)} days ago`;
+  }
+
+  function toLogin() {
+    location.replace(`/login.html?next=${encodeURIComponent(location.pathname + location.search)}`);
   }
 
   class AuthError extends Error {}
 
-  async function api(path) {
-    const res = await fetch(`${API_BASE}${path}`, { headers: { 'x-api-key': store.get() } });
-    if (res.status === 401) throw new AuthError('Invalid API key');
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { credentials: 'same-origin', ...opts });
+    if (res.status === 401) throw new AuthError('Session expired');
+    if (res.status === 204) return null;
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
     return body;
@@ -95,13 +100,13 @@
     const qs = new URLSearchParams({ date: els.date.value });
     if (els.time.value) qs.set('time', els.time.value);
 
-    els.main.classList.add('loading');
+    if (!state.report) renderSkeleton();
     els.main.setAttribute('aria-busy', 'true');
     try {
       const [report, students, devices] = await Promise.all([
         api(`/api/reports/hostel/devices?${qs}`),
         api(`/api/reports/hostel/students?${qs}`),
-        api('/api/devices').catch(() => ({ data: [] })),
+        api('/api/devices').catch((e) => { if (e instanceof AuthError) throw e; return { data: [] }; }),
       ]);
       if (seq !== loadSeq) return;
       state.report = report;
@@ -109,20 +114,14 @@
       state.online = new Map(devices.data.map((d) => [d.DeviceId, d]));
       state.loadedAt = new Date();
       if (state.device !== 'all' && !report.devices.some((d) => String(d.DeviceId) === state.device)) state.device = 'all';
+      els.errorBox.innerHTML = '';
       render();
     } catch (err) {
       if (seq !== loadSeq) return;
-      if (err instanceof AuthError) {
-        openKeyDialog(store.get() ? 'That key was not accepted. Check API_KEY in the server .env file.' : '');
-        renderMessage('Enter the API key to load the register.');
-      } else {
-        renderMessage(`Couldn't load the register: ${err.message}. Check that the API server is running, then try again.`, true);
-      }
+      if (err instanceof AuthError) { toLogin(); return; }
+      renderError(`Couldn't load the register: ${err.message}. Check that the API server is running, then try again.`);
     } finally {
-      if (seq === loadSeq) {
-        els.main.classList.remove('loading');
-        els.main.setAttribute('aria-busy', 'false');
-      }
+      if (seq === loadSeq) els.main.setAttribute('aria-busy', 'false');
     }
   }
 
@@ -154,6 +153,7 @@
   // ---------- rendering ----------
   function render() {
     renderSummary();
+    renderKpis();
     renderGates();
     renderChips();
     renderRows();
@@ -161,15 +161,26 @@
     writeUrl();
   }
 
-  function renderMessage(text, isError = false) {
-    els.headline.textContent = isError ? 'The register is unavailable' : 'Register locked';
-    els.subline.textContent = text;
-    els.liveState.textContent = '';
-    els.updated.textContent = '';
-    els.gateList.innerHTML = `<div class="notice ${isError ? 'error' : ''}">${esc(text)}<br>
-      <button class="btn" type="button" data-action="${isError ? 'retry' : 'key'}">${isError ? 'Try again' : 'Enter API key'}</button></div>`;
-    els.rows.innerHTML = '';
-    els.rowCount.textContent = '';
+  function renderSkeleton() {
+    els.dateText.textContent = fmtDate(els.date.value);
+    els.kpis.innerHTML = '<div class="sk sk-kpi"></div>'.repeat(4);
+    els.gateList.innerHTML = '<div class="sk sk-row"></div>'.repeat(3);
+    els.rows.innerHTML = `<tr><td colspan="8" class="empty-cell">${'<div class="sk" style="margin:10px 0"></div>'.repeat(5)}</td></tr>`;
+  }
+
+  function renderError(text) {
+    els.errorBox.innerHTML = `
+      <div class="alert-x rg-error" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+        <span>${esc(text)}</span>
+        <button class="btn-x btn-x--ghost" type="button" data-action="retry">Try again</button>
+      </div>`;
+    if (!state.report) {
+      els.kpis.innerHTML = '';
+      els.headlineBox.hidden = true;
+      els.gateList.innerHTML = '<div class="empty"><i class="bi bi-wifi-off" aria-hidden="true"></i><h4>Register unavailable</h4><p>Gate data will appear here once the server responds.</p></div>';
+      els.rows.innerHTML = '';
+      els.rowCount.textContent = '';
+    }
   }
 
   function renderSummary() {
@@ -177,28 +188,65 @@
     const { totals, devices } = state.report;
     const are = live ? 'are' : 'were';
     const when = live ? '' : `${els.time.value ? `At ${els.time.value} on` : 'At the end of'} ${fmtDate(els.date.value)}. `;
+    let outN;
 
     if (state.device === 'all') {
+      outN = totals.out;
       els.headline.textContent = totals.out === 0
         ? `Every student ${live ? 'is' : 'was'} in the hostel`
-        : `${totals.out.toLocaleString('en-IN')} of ${plural(totals.students, 'student', 'students')} ${are} out of the hostel`;
-      els.subline.textContent = `${when}${plural(totals.in, 'student', 'students')} counted in, including ${totals.noPunches.toLocaleString('en-IN')} who ${live ? "haven't" : "hadn't"} punched ${live ? 'today' : 'that day'}.`;
+        : `${num(totals.out)} of ${plural(totals.students, 'student', 'students')} ${are} out of the hostel`;
+      els.subline.textContent = `${when}${plural(totals.in, 'student', 'students')} counted in, including ${num(totals.noPunches)} who ${live ? "haven't" : "hadn't"} punched ${live ? 'today' : 'that day'}.`;
     } else {
       const g = devices.find((d) => String(d.DeviceId) === state.device);
+      outN = g.studentsOut;
       els.headline.textContent = `${plural(g.studentsOut, 'student', 'students')} last seen at ${g.DeviceName} ${g.studentsOut === 1 ? (live ? 'is' : 'was') : are} out`;
       els.subline.textContent = `${when}${plural(g.studentsIn, 'student', 'students')} came back in through this gate. It recorded ${plural(g.outPunches, 'exit', 'exits')} and ${plural(g.inPunches, 'entry', 'entries')}.`;
     }
+    els.headlineBox.hidden = false;
+    els.headlineBox.className = `attn ${outN ? 'attn--warn' : 'attn--good'}`;
+    els.headlineIcon.innerHTML = `<i class="bi ${outN ? 'bi-exclamation-triangle' : 'bi-check-circle'}"></i>`;
 
-    els.liveState.className = `live${live ? '' : ' past'}`;
-    els.liveState.textContent = live ? 'Live, refreshes every minute' : `Snapshot as of ${state.report.asOf.slice(11, 16)}`;
+    els.dateText.textContent = fmtDate(els.date.value);
+    els.liveState.innerHTML = live
+      ? '<span class="chip chip--good"><i class="bi bi-broadcast" aria-hidden="true"></i> Live · refreshes every minute</span>'
+      : `<span class="chip chip--muted"><i class="bi bi-clock-history" aria-hidden="true"></i> Snapshot as of ${esc(state.report.asOf.slice(11, 16))}</span>`;
     els.updated.textContent = `Updated ${state.loadedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  function renderKpis() {
+    const scoped = scopedStudents();
+    const total = scoped.length;
+    const count = (id) => scoped.filter((s) => statusOf(s) === id).length;
+    const pct = (n) => (total ? Math.round((n / total) * 100) : 0);
+    const devices = state.report.devices;
+    const onlineCount = devices.filter((d) => state.online.get(d.DeviceId)?.online).length;
+
+    const tile = (filter, mod, icon, label, n, note) => `
+      <button type="button" class="kpi ${mod}" data-filter="${filter}" aria-pressed="${state.filter === filter}">
+        <span class="kpi-top"><span class="kpi-icon"><i class="bi ${icon}" aria-hidden="true"></i></span><span class="kpi-label">${label}</span></span>
+        <span class="kpi-value">${num(n)}</span>
+        <span class="kpi-note">${note}</span>
+        <span class="kpi-bar" aria-hidden="true"><span style="width:${pct(n)}%"></span></span>
+      </button>`;
+
+    els.kpis.innerHTML = [
+      tile('OUT', 'kpi--warn', 'bi-box-arrow-right', 'Out of hostel', count('OUT'), `${pct(count('OUT'))}% of ${plural(total, 'student', 'students')}`),
+      tile('IN', 'kpi--good', 'bi-box-arrow-in-left', 'Came back in', count('IN'), `${pct(count('IN'))}% punched back in`),
+      tile('NONE', '', 'bi-dash-circle', 'No punches', count('NONE'), `${pct(count('NONE'))}% counted in, no scans`),
+      `<div class="kpi kpi--teal">
+        <span class="kpi-top"><span class="kpi-icon"><i class="bi bi-hdd-network" aria-hidden="true"></i></span><span class="kpi-label">Gates online</span></span>
+        <span class="kpi-value">${onlineCount} <small style="font-size:15px;color:var(--muted)">of ${devices.length}</small></span>
+        <span class="kpi-note">${onlineCount === devices.length ? 'All gate devices connected' : `${devices.length - onlineCount} offline`}</span>
+        <span class="kpi-bar" aria-hidden="true"><span style="width:${devices.length ? (onlineCount / devices.length) * 100 : 0}%"></span></span>
+      </div>`,
+    ].join('');
   }
 
   function splitBar(outN, inN) {
     const total = outN + inN;
     const o = total ? (outN / total) * 100 : 0;
     return `<div class="split" aria-hidden="true">${total ? `<span class="o" style="width:${o}%"></span><span class="i" style="width:${100 - o}%"></span>` : ''}</div>
-      <div class="split-legend"><span class="o">${outN} out</span><span class="i">${inN} in</span></div>`;
+      <div class="split-legend"><span class="o">${num(outN)} out</span><span class="i">${num(inN)} in</span></div>`;
   }
 
   function renderGates() {
@@ -207,26 +255,24 @@
     const onlineCount = devices.filter((d) => state.online.get(d.DeviceId)?.online).length;
 
     const allRow = `
-      <button type="button" class="gate all" data-device="all" aria-pressed="${state.device === 'all'}">
-        <div>
-          <div class="gate-name">All gates</div>
-          <div class="gate-meta">${onlineCount} of ${devices.length} devices online</div>
-        </div>
+      <button type="button" class="rg-gate" data-device="all" aria-pressed="${state.device === 'all'}">
+        <span class="rg-gate-name"><i class="bi bi-grid" aria-hidden="true"></i><span><b>All gates</b>
+          <span class="chip chip--muted">${onlineCount} of ${devices.length} online</span></span></span>
         <div>${splitBar(totals.out, totals.in)}</div>
-        <div class="gate-punches"><b>${sumPunches.o}</b> exits, <b>${sumPunches.i}</b> entries<br>${totals.noPunches} students with no punches</div>
+        <div class="rg-gate-punches"><b>${num(sumPunches.o)}</b> exits, <b>${num(sumPunches.i)}</b> entries<br>${plural(totals.noPunches, 'student', 'students')} with no punches</div>
       </button>`;
 
     const rows = devices.map((d) => {
       const dev = state.online.get(d.DeviceId);
       const on = !!dev?.online;
+      const status = on
+        ? '<span class="chip chip--good"><i class="bi bi-check-circle" aria-hidden="true"></i> Online</span>'
+        : `<span class="chip chip--bad"><i class="bi bi-x-circle" aria-hidden="true"></i> Offline, ${esc(sinceText(dev?.LastPing))}</span>`;
       return `
-      <button type="button" class="gate" data-device="${d.DeviceId}" aria-pressed="${state.device === String(d.DeviceId)}">
-        <div>
-          <div class="gate-name">${esc(d.DeviceName)}</div>
-          <div class="gate-meta"><span class="dot ${on ? 'on' : ''}"></span>${on ? 'Online' : `Offline, ${sinceText(dev?.LastPing)}`}</div>
-        </div>
+      <button type="button" class="rg-gate" data-device="${d.DeviceId}" aria-pressed="${state.device === String(d.DeviceId)}">
+        <span class="rg-gate-name"><i class="bi bi-door-open" aria-hidden="true"></i><span><b>${esc(d.DeviceName)}</b>${status}</span></span>
         <div>${splitBar(d.studentsOut, d.studentsIn)}</div>
-        <div class="gate-punches"><b>${d.outPunches}</b> exits, <b>${d.inPunches}</b> entries</div>
+        <div class="rg-gate-punches"><b>${num(d.outPunches)}</b> exits, <b>${num(d.inPunches)}</b> entries</div>
       </button>`;
     }).join('');
 
@@ -237,14 +283,17 @@
     const scoped = scopedStudents();
     const count = (id) => (id === 'ALL' ? scoped.length : scoped.filter((s) => statusOf(s) === id).length);
     els.chips.innerHTML = STATUS_FILTERS.map((f) => `
-      <button type="button" class="chip" data-filter="${f.id}" aria-pressed="${state.filter === f.id}">
-        ${f.label} <span class="n">${count(f.id)}</span>
+      <button type="button" role="tab" data-filter="${f.id}" aria-selected="${state.filter === f.id}">
+        ${f.label} <span class="n">${num(count(f.id))}</span>
       </button>`).join('');
+    els.kpis.querySelectorAll('.kpi[data-filter]').forEach((k) => k.setAttribute('aria-pressed', String(k.dataset.filter === state.filter)));
   }
 
-  function statusPill(s) {
-    if (!s.hasPunches) return '<span class="pill none">No punches</span>';
-    return `<span class="pill ${s.status}">${s.status === 'OUT' ? 'Out' : 'In'}</span>`;
+  function statusChip(s) {
+    if (!s.hasPunches) return '<span class="chip chip--muted"><i class="bi bi-dash-circle" aria-hidden="true"></i> No punches</span>';
+    return s.status === 'OUT'
+      ? '<span class="chip chip--warn"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Out</span>'
+      : '<span class="chip chip--good"><i class="bi bi-check-circle" aria-hidden="true"></i> In</span>';
   }
 
   function renderRows() {
@@ -254,13 +303,15 @@
     });
 
     if (!list.length) {
-      const msg = {
-        OUT: 'No students are out. Everyone who left has punched back in.',
-        IN: 'No students are counted in here.',
-        NONE: 'Every student has punched at least once.',
-        ALL: 'No students match.',
-      }[state.filter];
-      els.rows.innerHTML = `<tr><td colspan="8" class="empty">${state.query ? `No students match "${esc(state.query)}".` : msg}</td></tr>`;
+      const [icon, title, msg] = state.query
+        ? ['bi-search', 'No matches', `No students match "${esc(state.query)}". Check the spelling or roll number.`]
+        : {
+          OUT: ['bi-house-check', 'Nobody is out', 'Everyone who left has punched back in.'],
+          IN: ['bi-person-dash', 'No one counted in here', 'No student has punched back in at this gate.'],
+          NONE: ['bi-check2-all', 'Everyone has punched', 'Every student has at least one punch today.'],
+          ALL: ['bi-people', 'No students', 'No students are registered on these gates.'],
+        }[state.filter];
+      els.rows.innerHTML = `<tr class="empty-row"><td colspan="8" class="empty-cell"><div class="empty"><i class="bi ${icon}" aria-hidden="true"></i><h4>${title}</h4><p>${msg}</p></div></td></tr>`;
       els.rowCount.textContent = '';
       return;
     }
@@ -268,16 +319,17 @@
     els.rows.innerHTML = list.map((s) => {
       const open = state.expanded.has(s.UserId);
       const id = `d-${esc(s.UserId)}`;
+      const name = esc(s.EmployeeName || 'Unknown user');
       const main = `
-        <tr>
-          <td>${s.movements.length ? `<button type="button" class="expand" data-user="${esc(s.UserId)}" aria-expanded="${open}" aria-controls="${id}" aria-label="Show movements for ${esc(s.EmployeeName)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>` : ''}</td>
-          <td><div class="name">${esc(s.EmployeeName || 'Unknown user')}</div><div class="code">${esc(s.EmployeeCode || s.UserId)}</div></td>
-          <td>${statusPill(s)}</td>
-          <td>${hhmm(s.firstOut) || '<span class="muted">–</span>'}</td>
-          <td>${hhmm(s.lastIn) || '<span class="muted">–</span>'}</td>
-          <td>${hhmm(s.lastPunch) || '<span class="muted">–</span>'}</td>
-          <td>${esc(s.lastDeviceName || '') || '<span class="muted">–</span>'}</td>
-          <td class="num">${s.punchCount}</td>
+        <tr class="${open ? 'is-open' : ''}">
+          <td class="c-expand">${s.movements.length ? `<button type="button" class="expand" data-user="${esc(s.UserId)}" aria-expanded="${open}" aria-controls="${id}" aria-label="Show movements for ${name}" title="Show movements"><i class="bi bi-chevron-right" aria-hidden="true"></i><span class="lbl">${open ? 'Hide' : 'Show'} ${plural(s.movements.length, 'movement', 'movements')}</span></button>` : ''}</td>
+          <td class="c-student"><div class="rg-name">${name}</div><div class="rg-code">${esc(s.EmployeeCode || s.UserId)}</div></td>
+          <td class="c-status" data-label="Status">${statusChip(s)}</td>
+          <td data-label="Went out">${hhmm(s.firstOut) ? `<span class="rg-time">${hhmm(s.firstOut)}</span>` : dash}</td>
+          <td data-label="Came back">${hhmm(s.lastIn) ? `<span class="rg-time">${hhmm(s.lastIn)}</span>` : dash}</td>
+          <td data-label="Last punch">${hhmm(s.lastPunch) ? `<span class="rg-time">${hhmm(s.lastPunch)}</span>` : dash}</td>
+          <td data-label="Last gate">${esc(s.lastDeviceName || '') || dash}</td>
+          <td class="num" data-label="Punches">${s.punchCount}</td>
         </tr>`;
       if (!open) return main;
       const steps = s.movements.map((m) => `
@@ -320,42 +372,47 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  // ---------- API key dialog ----------
-  function openKeyDialog(error = '') {
-    els.keyError.textContent = error;
-    els.apiKey.value = store.get();
-    if (!els.keyDialog.open) els.keyDialog.showModal();
-    els.apiKey.focus();
+  // ---------- session ----------
+  async function loadUser() {
+    const { user } = await api('/auth/me');
+    $('userName').textContent = user.name;
+    $('userRole').textContent = user.role;
+    $('userAvatar').textContent = user.name.slice(0, 2);
+    $('userBox').hidden = false;
   }
 
-  els.keyForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const v = els.apiKey.value.trim();
-    if (!v) { els.keyError.textContent = 'Enter the key to continue.'; return; }
-    store.set(v);
-    els.keyDialog.close();
-    load();
+  $('logout').addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    await api('/auth/logout', { method: 'POST' }).catch(() => {});
+    location.replace('/login.html');
   });
-  $('keyCancel').addEventListener('click', () => els.keyDialog.close());
 
   // ---------- events ----------
+  const setFilter = (f) => {
+    state.filter = f;
+    renderChips();
+    renderRows();
+    writeUrl();
+  };
+
+  els.errorBox.addEventListener('click', (e) => { if (e.target.closest('[data-action="retry"]')) load(); });
+
   els.gateList.addEventListener('click', (e) => {
-    const action = e.target.closest('[data-action]');
-    if (action) { action.dataset.action === 'retry' ? load() : openKeyDialog(); return; }
-    const gate = e.target.closest('.gate');
+    const gate = e.target.closest('.rg-gate');
     if (!gate || !state.report) return;
     state.device = gate.dataset.device;
     state.expanded.clear();
     render();
   });
 
+  els.kpis.addEventListener('click', (e) => {
+    const k = e.target.closest('.kpi[data-filter]');
+    if (k) setFilter(k.dataset.filter);
+  });
+
   els.chips.addEventListener('click', (e) => {
-    const chip = e.target.closest('.chip');
-    if (!chip) return;
-    state.filter = chip.dataset.filter;
-    renderChips();
-    renderRows();
-    writeUrl();
+    const b = e.target.closest('button[data-filter]');
+    if (b) setFilter(b.dataset.filter);
   });
 
   els.rows.addEventListener('click', (e) => {
@@ -388,14 +445,16 @@
   $('nextDay').addEventListener('click', () => { els.date.value = shiftDate(els.date.value, 1); reload(); });
   $('today').addEventListener('click', () => { els.date.value = todayIST(); els.time.value = ''; reload(); });
   $('refresh').addEventListener('click', load);
-  $('settings').addEventListener('click', () => openKeyDialog());
   $('exportCsv').addEventListener('click', exportCsv);
 
-  setInterval(() => { if (isLive() && !document.hidden && !els.keyDialog.open) load(); }, REFRESH_MS);
+  setInterval(() => { if (isLive() && !document.hidden) load(); }, REFRESH_MS);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && isLive() && state.loadedAt && Date.now() - state.loadedAt > REFRESH_MS) load();
   });
 
   readUrl();
-  if (store.get()) load(); else { renderMessage('Enter the API key to load the register.'); openKeyDialog(); }
+  renderSkeleton();
+  loadUser()
+    .then(load)
+    .catch((err) => (err instanceof AuthError ? toLogin() : renderError(`Couldn't reach the server: ${err.message}.`)));
 })();
