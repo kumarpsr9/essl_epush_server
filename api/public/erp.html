@@ -28,6 +28,7 @@
 .facts dd { margin: 2px 0 0; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .facts code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font: 600 13px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--navy); }
 .facts .btn-x { min-height: 30px; padding: 4px 10px; font-size: 12.5px; flex: none; }
+.fld-hint.is-warn { padding: 8px 10px; border-radius: var(--r-md); background: var(--warn-bg); color: #7a5200; }
 .method { display: inline-block; padding: 1px 7px; margin-right: 6px; border-radius: var(--r-xs); background: var(--good-bg); color: var(--good); font: 800 11.5px ui-monospace, Menlo, monospace; }
 
 /* Tables */
@@ -99,7 +100,7 @@ pre.code {
           <div><dt>Header</dt><dd><code>Authorization: Bearer &lt;key&gt;</code></dd></div>
           <div><dt>Body</dt><dd><code>Content-Type: application/json</code></dd></div>
         </dl>
-        <p class="fld-hint" style="margin-top:12px">Give the ERP team this address and a key from below. The address must be reachable from the ERP server: use the API's LAN or public address if this page is open on <code>localhost</code>.</p>
+        <p class="fld-hint" id="hookHint" style="margin-top:12px"></p>
       </section>
 
       <section class="card-x flush" aria-labelledby="keysTitle">

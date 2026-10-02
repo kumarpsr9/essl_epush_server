@@ -3,7 +3,7 @@
 
   const { api, toast, esc, AuthError, toLogin } = AppNav;
   const $ = (id) => document.getElementById(id);
-  const hookUrl = `${location.origin}/hooks/students`;
+  let hookUrl = `${location.origin}/hooks/students`; // replaced by PUBLIC_BASE_URL from the server when set
   const state = { keys: [], log: [], target: null };
 
   const num = (n) => n.toLocaleString('en-IN');
@@ -38,8 +38,14 @@
   });
 
   // ---------- static content ----------
-  $('hookUrl').textContent = hookUrl;
-  $('exampleReq').textContent = `curl -X POST '${hookUrl}' \\
+  function renderHookUrl(configured) {
+    if (configured) hookUrl = configured;
+    $('hookUrl').textContent = hookUrl;
+    $('hookHint').textContent = configured
+      ? 'Give the ERP team this address and a key from below. It comes from PUBLIC_BASE_URL in the server\'s .env.'
+      : 'PUBLIC_BASE_URL isn\'t set in the server\'s .env, so this is the address you opened this page on. If the ERP server can\'t reach it (for example localhost or a LAN address), set PUBLIC_BASE_URL and restart the API.';
+    $('hookHint').classList.toggle('is-warn', !configured);
+    $('exampleReq').textContent = `curl -X POST '${hookUrl}' \\
   -H 'Authorization: Bearer erp_xxxxxxxx' \\
   -H 'Content-Type: application/json' \\
   -d '{ "students": [
@@ -53,6 +59,8 @@
     { "code": "324955",
       "room": "102", "bed": "" }
   ] }'`;
+  }
+  renderHookUrl('');
 
   // ---------- load ----------
   async function load() {
@@ -61,6 +69,7 @@
       state.keys = data.keys;
       state.log = data.log;
       $('maxRecords').textContent = num(data.maxRecords);
+      renderHookUrl(data.hookUrl);
       $('errorBox').innerHTML = '';
       renderKeys();
       renderLog();

@@ -3,6 +3,7 @@ const express = require('express');
 const { pool } = require('../db');
 const { HttpError, asyncHandler } = require('../util');
 const { saveStudent } = require('../students');
+const { publicBaseUrl } = require('../config');
 
 const MAX_RECORDS = 2000;
 const MAX_LOGGED_ERRORS = 50;
@@ -96,6 +97,8 @@ admin.get('/', asyncHandler(async (req, res) => {
     keys,
     log: log.map((l) => ({ ...l, errors: l.errors ? JSON.parse(l.errors) : [] })),
     maxRecords: MAX_RECORDS,
+    // Empty when PUBLIC_BASE_URL isn't set; the page then falls back to its own address.
+    hookUrl: publicBaseUrl ? `${publicBaseUrl}/hooks/students` : '',
   });
 }));
 
