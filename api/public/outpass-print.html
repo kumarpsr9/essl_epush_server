@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outpass · Aditya Hostels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+body { padding: 24px 16px 40px; }
+.bar { max-width: 480px; margin: 0 auto 14px; display: flex; justify-content: space-between; gap: 8px; }
+.slip { max-width: 480px; margin: 0 auto; background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-2); overflow: hidden; }
+.slip-head { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 2px solid var(--navy); }
+.slip-head > i { width: 38px; height: 38px; border-radius: var(--r-md); background: var(--primary-50); color: var(--primary); display: grid; place-items: center; font-size: 19px; }
+.slip-head b { display: block; font: 800 16px/1.2 "Nunito", sans-serif; color: var(--navy); }
+.slip-head small { color: var(--muted); font-size: 12px; }
+.slip-kind { margin-left: auto; text-align: right; }
+.slip-kind .t { display: block; font: 800 13px "Nunito", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--navy); }
+.slip-kind .no { font: 700 15px ui-monospace, "SF Mono", Menlo, monospace; color: var(--navy); }
+.slip-body { padding: 16px 20px 6px; }
+.who { display: flex; align-items: center; gap: 12px; }
+.who .rg-avatar { width: 44px; height: 44px; font-size: 16px; }
+.who h1 { margin: 0; font-size: 19px; font-weight: 800; }
+.who .meta { font-size: 12.5px; color: var(--muted); }
+.window { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 16px 0; padding: 12px 14px; border-radius: var(--r-lg); background: var(--surface-2); border: 1px solid var(--line-soft); }
+.window dt { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.window dd { margin: 2px 0 0; font: 800 17px "Nunito", sans-serif; color: var(--navy); }
+.window .arrow { color: var(--faint); font-size: 20px; }
+.window .back { text-align: right; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin: 0 0 14px; }
+.facts dt { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.facts dd { margin: 1px 0 0; font-size: 13.5px; font-weight: 600; color: var(--navy); }
+.facts .wide { grid-column: 1 / -1; }
+.state { margin-bottom: 14px; }
+.signs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px 20px; padding: 26px 20px 18px; border-top: 1px dashed var(--line); }
+.signs div { border-top: 1px solid var(--text); padding-top: 4px; font-size: 11.5px; color: var(--muted); }
+.foot { padding: 0 20px 14px; font-size: 11px; color: var(--muted); }
+@media print {
+  @page { size: A5; margin: 10mm; }
+  body { padding: 0; background: #fff; }
+  .bar { display: none; }
+  .slip { box-shadow: none; border-color: #999; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<div class="bar">
+  <a class="btn-x btn-x--ghost" href="/outpasses.html"><i class="bi bi-arrow-left" aria-hidden="true"></i> Outpasses</a>
+  <button class="btn-x btn-x--primary" type="button" id="print"><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+</div>
+<main id="slip" class="slip" aria-busy="true">
+  <div class="slip-body"><div class="sk" style="margin:12px 0"></div><div class="sk" style="margin:12px 0"></div><div class="sk" style="margin:12px 0"></div></div>
+</main>
+<script src="outpass-print.js"></script>
+</body>
+</html>

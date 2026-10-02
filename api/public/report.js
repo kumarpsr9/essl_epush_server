@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const els = {
     main: $('main'), date: $('date'), time: $('time'), dateText: $('dateText'),
-    headlineBox: $('headlineBox'), headlineIcon: $('headlineIcon'), headline: $('headline'), subline: $('subline'),
+    headlineBox: $('headlineBox'), headlineAction: $('headlineAction'), headlineIcon: $('headlineIcon'), headline: $('headline'), subline: $('subline'),
     liveState: $('liveState'), updated: $('updated'), errorBox: $('errorBox'), kpis: $('kpis'),
     gateList: $('gateList'), chips: $('chips'), search: $('search'), rows: $('rows'), rowCount: $('rowCount'), dedup: $('dedup'),
   };
@@ -21,14 +21,23 @@
     sort: { key: 'lastPunch', dir: 'desc' },
     expanded: new Set(),
     loadedAt: null,
+    issuedNotLeft: null, // open outpasses the student hasn't used yet (live view only)
+    user: null,        // from AppNav: wardens carry the DeviceIds they may see
   };
 
   const STATUS_FILTERS = [
     { id: 'OUT', label: 'Out' },
+    { id: 'PASS', label: 'On outpass' },
     { id: 'IN', label: 'In' },
     { id: 'NONE', label: 'No punches' },
     { id: 'ALL', label: 'All' },
   ];
+  // Reached from a KPI card or the banner; shown as a tab only while selected.
+  const EXTRA_FILTERS = [
+    { id: 'NOPASS', label: 'Out, no outpass', after: 'OUT' },
+    { id: 'INSIDE', label: 'In hostel', after: 'IN' },
+  ];
+  const ALL_FILTERS = [...STATUS_FILTERS, ...EXTRA_FILTERS];
 
   // ---------- helpers ----------
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -47,6 +56,8 @@
     t.setUTCDate(t.getUTCDate() + days);
     return t.toISOString().slice(0, 10);
   };
+  const COLS = 8; // columns in the students table
+  const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
   const isLive = () => els.date.value === todayIST() && !els.time.value;
   const dash = '<span class="dash" aria-label="none">–</span>';
 
@@ -81,7 +92,7 @@
     els.date.value = /^\d{4}-\d{2}-\d{2}$/.test(p.get('date') || '') ? p.get('date') : todayIST();
     els.time.value = /^\d{2}:\d{2}$/.test(p.get('time') || '') ? p.get('time') : '';
     state.device = p.get('device') || 'all';
-    if (STATUS_FILTERS.some((f) => f.id === p.get('status'))) state.filter = p.get('status');
+    if (ALL_FILTERS.some((f) => f.id === p.get('status'))) state.filter = p.get('status');
   }
 
   function writeUrl() {
@@ -103,12 +114,15 @@
     if (!state.report) renderSkeleton();
     els.main.setAttribute('aria-busy', 'true');
     try {
-      const [report, students, devices] = await Promise.all([
+      const optional = (p) => p.catch((e) => { if (e instanceof AuthError) throw e; return null; });
+      const [report, students, devices, passes] = await Promise.all([
         api(`/api/reports/hostel/devices?${qs}`),
         api(`/api/reports/hostel/students?${qs}`),
-        api('/api/devices').catch((e) => { if (e instanceof AuthError) throw e; return { data: [] }; }),
+        optional(api('/api/devices')).then((d) => d || { data: [] }),
+        isLive() ? optional(api('/api/outpasses')) : null,
       ]);
       if (seq !== loadSeq) return;
+      state.issuedNotLeft = passes ? passes.data.filter((p) => p.state === 'issued').length : null;
       state.report = report;
       state.students = students.data;
       state.online = new Map(devices.data.map((d) => [d.DeviceId, d]));
@@ -126,7 +140,16 @@
   }
 
   // ---------- derived data ----------
-  const statusOf = (s) => (s.hasPunches ? s.status : 'NONE');
+  // Students away overnight on an outpass are OUT even without punches today.
+  const statusOf = (s) => (s.hasPunches || s.awayOvernight ? s.status : 'NONE');
+  const noPass = (s) => statusOf(s) === 'OUT' && !s.outpass;
+  const onPass = (s) => statusOf(s) === 'OUT' && !!s.outpass;
+  const matches = (s, filter) => ({
+    ALL: true,
+    NOPASS: noPass(s),
+    PASS: onPass(s),
+    INSIDE: statusOf(s) !== 'OUT',
+  })[filter] ?? statusOf(s) === filter;
 
   function scopedStudents() {
     if (state.device === 'all') return state.students;
@@ -138,15 +161,15 @@
     const { key, dir } = state.sort;
     const sign = dir === 'asc' ? 1 : -1;
     return scopedStudents()
-      .filter((s) => state.filter === 'ALL' || statusOf(s) === state.filter)
-      .filter((s) => !q || [s.EmployeeName, s.EmployeeCode, s.UserId].some((v) => v && String(v).toLowerCase().includes(q)))
+      .filter((s) => matches(s, state.filter))
+      .filter((s) => !q || [s.EmployeeName, s.EmployeeCode, s.UserId, s.Campus, s.Block, s.RoomNo, s.ContactNo].some((v) => v && String(v).toLowerCase().includes(q)))
       .sort((a, b) => {
         const av = a[key] ?? '';
         const bv = b[key] ?? '';
-        if (av === bv) return String(a.EmployeeName).localeCompare(String(b.EmployeeName));
+        if (av === bv) return collator.compare(String(a.EmployeeName), String(b.EmployeeName));
         if (av === '') return 1; // empty values always last
         if (bv === '') return -1;
-        return (typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv))) * sign;
+        return (typeof av === 'number' ? av - bv : collator.compare(String(av), String(bv))) * sign;
       });
   }
 
@@ -165,7 +188,7 @@
     els.dateText.textContent = fmtDate(els.date.value);
     els.kpis.innerHTML = '<div class="sk sk-kpi"></div>'.repeat(4);
     els.gateList.innerHTML = '<div class="sk sk-row"></div>'.repeat(3);
-    els.rows.innerHTML = `<tr><td colspan="8" class="empty-cell">${'<div class="sk" style="margin:10px 0"></div>'.repeat(5)}</td></tr>`;
+    els.rows.innerHTML = `<tr><td colspan="${COLS}" class="empty-cell">${'<div class="sk" style="margin:10px 0"></div>'.repeat(5)}</td></tr>`;
   }
 
   function renderError(text) {
@@ -185,17 +208,32 @@
 
   function renderSummary() {
     const live = isLive();
-    const { totals, devices } = state.report;
+    const { devices } = state.report;
     const are = live ? 'are' : 'were';
     const when = live ? '' : `${els.time.value ? `At ${els.time.value} on` : 'At the end of'} ${fmtDate(els.date.value)}. `;
     let outN;
+    let noPassN = 0;
 
     if (state.device === 'all') {
-      outN = totals.out;
-      els.headline.textContent = totals.out === 0
+      // Counted from the same rows as the KPI cards so the two always agree.
+      const rows = state.students;
+      const n = (f) => rows.filter((s) => matches(s, f)).length;
+      const out = n('OUT');
+      const pass = n('PASS');
+      const overdue = rows.filter((s) => onPass(s) && s.outpass.overdue).length;
+      const noPunch = n('NONE');
+      outN = out;
+      noPassN = n('NOPASS');
+      const isWas = (k) => (k === 1 ? (live ? 'is' : 'was') : are);
+      els.headline.textContent = out === 0
         ? `Every student ${live ? 'is' : 'was'} in the hostel`
-        : `${num(totals.out)} of ${plural(totals.students, 'student', 'students')} ${are} out of the hostel`;
-      els.subline.textContent = `${when}${plural(totals.in, 'student', 'students')} counted in, including ${num(totals.noPunches)} who ${live ? "haven't" : "hadn't"} punched ${live ? 'today' : 'that day'}.`;
+        : noPassN
+          ? `${plural(noPassN, 'student', 'students')} ${isWas(noPassN)} out without an outpass`
+          : `${plural(out, 'student', 'students')} ${isWas(out)} out, all on an outpass`;
+      const passPart = out ? ` ${num(pass)} on an outpass${overdue ? ` (${num(overdue)} overdue)` : ''}.` : '';
+      const noPunchPart = noPunch
+        ? `, including ${num(noPunch)} who ${noPunch === 1 ? (live ? "hasn't" : "hadn't") : (live ? "haven't" : "hadn't")} punched ${live ? 'today' : 'that day'}` : '';
+      els.subline.textContent = `${when}${num(out)} out in total.${passPart} ${plural(n('INSIDE'), 'student', 'students')} inside${noPunchPart}.`;
     } else {
       const g = devices.find((d) => String(d.DeviceId) === state.device);
       outN = g.studentsOut;
@@ -203,8 +241,9 @@
       els.subline.textContent = `${when}${plural(g.studentsIn, 'student', 'students')} came back in through this gate. It recorded ${plural(g.outPunches, 'exit', 'exits')} and ${plural(g.inPunches, 'entry', 'entries')}.`;
     }
     els.headlineBox.hidden = false;
-    els.headlineBox.className = `attn ${outN ? 'attn--warn' : 'attn--good'}`;
-    els.headlineIcon.innerHTML = `<i class="bi ${outN ? 'bi-exclamation-triangle' : 'bi-check-circle'}"></i>`;
+    els.headlineBox.className = `attn ${noPassN ? 'attn--danger' : outN ? 'attn--warn' : 'attn--good'}`;
+    els.headlineIcon.innerHTML = `<i class="bi ${noPassN ? 'bi-exclamation-octagon' : outN ? 'bi-exclamation-triangle' : 'bi-check-circle'}"></i>`;
+    els.headlineAction.hidden = !noPassN || state.filter === 'NOPASS';
 
     els.dateText.textContent = fmtDate(els.date.value);
     els.liveState.innerHTML = live
@@ -213,26 +252,43 @@
     els.updated.textContent = `Updated ${state.loadedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
   }
 
+  // Four cards: who is out, who is out on a pass (and late), who is inside, gate health.
   function renderKpis() {
     const scoped = scopedStudents();
     const total = scoped.length;
-    const count = (id) => scoped.filter((s) => statusOf(s) === id).length;
-    const pct = (n) => (total ? Math.round((n / total) * 100) : 0);
+    const count = (id) => scoped.filter((s) => matches(s, id)).length;
+    const pct = (n, of = total) => (of ? Math.round((n / of) * 100) : 0);
     const devices = state.report.devices;
     const onlineCount = devices.filter((d) => state.online.get(d.DeviceId)?.online).length;
+    const live = isLive();
 
-    const tile = (filter, mod, icon, label, n, note) => `
+    const out = count('OUT');
+    const passN = count('PASS');
+    const noPassN = count('NOPASS');
+    const overdue = scoped.filter((s) => onPass(s) && s.outpass.overdue).length;
+    const inside = count('INSIDE');
+    const noPunch = count('NONE');
+
+    const tile = (filter, mod, icon, label, value, note, bar) => `
       <button type="button" class="kpi ${mod}" data-filter="${filter}" aria-pressed="${state.filter === filter}">
         <span class="kpi-top"><span class="kpi-icon"><i class="bi ${icon}" aria-hidden="true"></i></span><span class="kpi-label">${label}</span></span>
-        <span class="kpi-value">${num(n)}</span>
+        <span class="kpi-value">${value}</span>
         <span class="kpi-note">${note}</span>
-        <span class="kpi-bar" aria-hidden="true"><span style="width:${pct(n)}%"></span></span>
+        <span class="kpi-bar" aria-hidden="true"><span style="width:${bar}%"></span></span>
       </button>`;
 
+    const passNote = [
+      overdue ? `<b class="kpi-alert">${num(overdue)} overdue</b>` : 'None overdue',
+      state.issuedNotLeft ? `${num(state.issuedNotLeft)} issued, not left yet` : '',
+    ].filter(Boolean).join(' · ');
+
     els.kpis.innerHTML = [
-      tile('OUT', 'kpi--warn', 'bi-box-arrow-right', 'Out of hostel', count('OUT'), `${pct(count('OUT'))}% of ${plural(total, 'student', 'students')}`),
-      tile('IN', 'kpi--good', 'bi-box-arrow-in-left', 'Came back in', count('IN'), `${pct(count('IN'))}% punched back in`),
-      tile('NONE', '', 'bi-dash-circle', 'No punches', count('NONE'), `${pct(count('NONE'))}% counted in, no scans`),
+      tile('OUT', 'kpi--warn', 'bi-box-arrow-right', 'Out of hostel', num(out),
+        out ? `${num(passN)} on outpass${noPassN ? `, ${num(noPassN)} without` : ''}` : `Nobody ${live ? 'is' : 'was'} out`, pct(out)),
+      tile('PASS', overdue ? 'kpi--bad' : 'kpi--violet', overdue ? 'bi-alarm' : 'bi-ticket-perforated', 'On outpass', num(passN),
+        passNote, pct(overdue, passN) || (passN ? 100 : 0)),
+      tile('INSIDE', 'kpi--good', 'bi-house-check', 'In hostel', num(inside),
+        noPunch ? `${num(noPunch)} ${live ? (noPunch === 1 ? "hasn't" : "haven't") : "hadn't"} punched ${live ? 'today' : 'that day'}` : 'Everyone punched at least once', pct(inside)),
       `<div class="kpi kpi--teal">
         <span class="kpi-top"><span class="kpi-icon"><i class="bi bi-hdd-network" aria-hidden="true"></i></span><span class="kpi-label">Gates online</span></span>
         <span class="kpi-value">${onlineCount} <small style="font-size:15px;color:var(--muted)">of ${devices.length}</small></span>
@@ -256,7 +312,7 @@
 
     const allRow = `
       <button type="button" class="rg-gate" data-device="all" aria-pressed="${state.device === 'all'}">
-        <span class="rg-gate-name"><i class="bi bi-grid" aria-hidden="true"></i><span><b>All gates</b>
+        <span class="rg-gate-name"><i class="bi bi-grid" aria-hidden="true"></i><span><b>${state.user?.isAdmin === false ? 'All your gates' : 'All gates'}</b>
           <span class="chip chip--muted">${onlineCount} of ${devices.length} online</span></span></span>
         <div>${splitBar(totals.out, totals.in)}</div>
         <div class="rg-gate-punches"><b>${num(sumPunches.o)}</b> exits, <b>${num(sumPunches.i)}</b> entries<br>${plural(totals.noPunches, 'student', 'students')} with no punches</div>
@@ -281,8 +337,11 @@
 
   function renderChips() {
     const scoped = scopedStudents();
-    const count = (id) => (id === 'ALL' ? scoped.length : scoped.filter((s) => statusOf(s) === id).length);
-    els.chips.innerHTML = STATUS_FILTERS.map((f) => `
+    const count = (id) => scoped.filter((s) => matches(s, id)).length;
+    const tabs = [...STATUS_FILTERS];
+    const extra = EXTRA_FILTERS.find((f) => f.id === state.filter);
+    if (extra) tabs.splice(tabs.findIndex((f) => f.id === extra.after) + 1, 0, extra);
+    els.chips.innerHTML = tabs.map((f) => `
       <button type="button" role="tab" data-filter="${f.id}" aria-selected="${state.filter === f.id}">
         ${f.label} <span class="n">${num(count(f.id))}</span>
       </button>`).join('');
@@ -290,10 +349,28 @@
   }
 
   function statusChip(s) {
-    if (!s.hasPunches) return '<span class="chip chip--muted"><i class="bi bi-dash-circle" aria-hidden="true"></i> No punches</span>';
-    return s.status === 'OUT'
-      ? '<span class="chip chip--warn"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Out</span>'
-      : '<span class="chip chip--good"><i class="bi bi-check-circle" aria-hidden="true"></i> In</span>';
+    const st = statusOf(s);
+    if (st === 'NONE') return '<span class="chip chip--muted"><i class="bi bi-dash-circle" aria-hidden="true"></i> No punches</span>';
+    if (st === 'IN') return '<span class="chip chip--good"><i class="bi bi-check-circle" aria-hidden="true"></i> In</span>';
+    const p = s.outpass;
+    if (!p) return '<span class="chip chip--warn"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Out</span>';
+    const label = p.overdue ? 'Overdue' : s.awayOvernight && !s.hasPunches ? 'Away on leave' : 'Out on outpass';
+    return `<span class="chip ${p.overdue ? 'chip--bad' : 'chip--warn'}"><i class="bi ${p.overdue ? 'bi-alarm' : 'bi-ticket-perforated'}" aria-hidden="true"></i> ${label}</span>
+      <a class="rg-pass" href="/outpasses.html" title="Open outpasses">${esc(p.passNo)} · back by ${esc(p.returnBy.slice(0, 10) === els.date.value ? p.returnBy.slice(11, 16) : fmtShort(p.returnBy))}</a>`;
+  }
+  const fmtShort = (dt) => `${new Date(`${dt.slice(0, 10)}T12:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} ${dt.slice(11, 16)}`;
+
+  // Roll number, then whichever of campus / block / room / bed / mobile are filled in.
+  function metaLine(s) {
+    const parts = [
+      `<span>${esc(s.EmployeeCode || s.UserId)}</span>`,
+      s.Campus && `<span title="Campus">${esc(s.Campus)}</span>`,
+      s.Block && `<span title="Block">${esc(s.Block)}</span>`,
+      s.RoomNo && `<span>Room ${esc(s.RoomNo)}</span>`,
+      s.BedNo && `<span>Bed ${esc(s.BedNo)}</span>`,
+      s.ContactNo && `<a class="rg-tel" href="tel:${esc(String(s.ContactNo).replace(/[^\d+]/g, ''))}" title="Call ${esc(s.EmployeeName || '')}"><i class="bi bi-telephone" aria-hidden="true"></i> ${esc(s.ContactNo)}</a>`,
+    ];
+    return `<div class="rg-meta">${parts.filter(Boolean).join('')}</div>`;
   }
 
   function renderRows() {
@@ -308,10 +385,13 @@
         : {
           OUT: ['bi-house-check', 'Nobody is out', 'Everyone who left has punched back in.'],
           IN: ['bi-person-dash', 'No one counted in here', 'No student has punched back in at this gate.'],
+          NOPASS: ['bi-shield-check', 'Everyone out has an outpass', 'No student is out without a pass.'],
+          PASS: ['bi-ticket-perforated', 'Nobody is out on an outpass', 'Students out on a pass show here, with their return time.'],
+          INSIDE: ['bi-door-open', 'Nobody is inside', 'Every student on these gates is out.'],
           NONE: ['bi-check2-all', 'Everyone has punched', 'Every student has at least one punch today.'],
           ALL: ['bi-people', 'No students', 'No students are registered on these gates.'],
         }[state.filter];
-      els.rows.innerHTML = `<tr class="empty-row"><td colspan="8" class="empty-cell"><div class="empty"><i class="bi ${icon}" aria-hidden="true"></i><h4>${title}</h4><p>${msg}</p></div></td></tr>`;
+      els.rows.innerHTML = `<tr class="empty-row"><td colspan="${COLS}" class="empty-cell"><div class="empty"><i class="bi ${icon}" aria-hidden="true"></i><h4>${title}</h4><p>${msg}</p></div></td></tr>`;
       els.rowCount.textContent = '';
       return;
     }
@@ -323,19 +403,19 @@
       const main = `
         <tr class="${open ? 'is-open' : ''}">
           <td class="c-expand">${s.movements.length ? `<button type="button" class="expand" data-user="${esc(s.UserId)}" aria-expanded="${open}" aria-controls="${id}" aria-label="Show movements for ${name}" title="Show movements"><i class="bi bi-chevron-right" aria-hidden="true"></i><span class="lbl">${open ? 'Hide' : 'Show'} ${plural(s.movements.length, 'movement', 'movements')}</span></button>` : ''}</td>
-          <td class="c-student"><div class="rg-name">${name}</div><div class="rg-code">${esc(s.EmployeeCode || s.UserId)}</div></td>
+          <td class="c-student"><div class="rg-name">${name}</div>${metaLine(s)}</td>
           <td class="c-status" data-label="Status">${statusChip(s)}</td>
           <td data-label="Went out">${hhmm(s.firstOut) ? `<span class="rg-time">${hhmm(s.firstOut)}</span>` : dash}</td>
           <td data-label="Came back">${hhmm(s.lastIn) ? `<span class="rg-time">${hhmm(s.lastIn)}</span>` : dash}</td>
           <td data-label="Last punch">${hhmm(s.lastPunch) ? `<span class="rg-time">${hhmm(s.lastPunch)}</span>` : dash}</td>
-          <td data-label="Last gate">${esc(s.lastDeviceName || '') || dash}</td>
+          <td class="c-gate" data-label="Last gate">${esc(s.lastDeviceName || '') || dash}</td>
           <td class="num" data-label="Punches">${s.punchCount}</td>
         </tr>`;
       if (!open) return main;
       const steps = s.movements.map((m) => `
         <li class="${m.type}"><span class="t">${hhmm(m.time)}</span><span class="k">${m.type === 'OUT' ? 'Went out' : 'Came back'}</span><span class="g">${esc(m.deviceName)}</span></li>`).join('');
       return `${main}
-        <tr class="detail" id="${id}"><td colspan="8">
+        <tr class="detail" id="${id}"><td colspan="${COLS}">
           <ol class="timeline" aria-label="Movements">${steps}</ol>
           ${s.ignoredDuplicates ? `<div class="dupes">${plural(s.ignoredDuplicates, 'repeat scan was', 'repeat scans were')} ignored.</div>` : ''}
         </td></tr>`;
@@ -350,7 +430,13 @@
     const cols = [
       ['Roll number', (s) => s.EmployeeCode || s.UserId],
       ['Name', (s) => s.EmployeeName],
-      ['Status', (s) => (s.hasPunches ? s.status : 'IN (no punches)')],
+      ['Campus', (s) => s.Campus],
+      ['Block', (s) => s.Block],
+      ['Room', (s) => s.RoomNo],
+      ['Bed', (s) => s.BedNo],
+      ['Mobile', (s) => s.ContactNo],
+      ['Status', (s) => ({ NONE: 'IN (no punches)', IN: 'IN', OUT: s.outpass ? (s.outpass.overdue ? 'OUT (outpass overdue)' : 'OUT (on outpass)') : 'OUT (no outpass)' })[statusOf(s)]],
+      ['Outpass', (s) => (s.outpass ? `${s.outpass.passNo}, back by ${s.outpass.returnBy.slice(0, 16)}` : '')],
       ['Went out', (s) => hhmm(s.firstOut)],
       ['Came back', (s) => hhmm(s.lastIn)],
       ['Last punch', (s) => hhmm(s.lastPunch)],
@@ -372,21 +458,6 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  // ---------- session ----------
-  async function loadUser() {
-    const { user } = await api('/auth/me');
-    $('userName').textContent = user.name;
-    $('userRole').textContent = user.role;
-    $('userAvatar').textContent = user.name.slice(0, 2);
-    $('userBox').hidden = false;
-  }
-
-  $('logout').addEventListener('click', async (e) => {
-    e.currentTarget.disabled = true;
-    await api('/auth/logout', { method: 'POST' }).catch(() => {});
-    location.replace('/login.html');
-  });
-
   // ---------- events ----------
   const setFilter = (f) => {
     state.filter = f;
@@ -394,6 +465,12 @@
     renderRows();
     writeUrl();
   };
+
+  els.headlineAction.addEventListener('click', () => {
+    setFilter('NOPASS');
+    els.headlineAction.hidden = true;
+    document.getElementById('studentsTitle').scrollIntoView({ behavior: 'smooth' });
+  });
 
   els.errorBox.addEventListener('click', (e) => { if (e.target.closest('[data-action="retry"]')) load(); });
 
@@ -447,14 +524,27 @@
   $('refresh').addEventListener('click', load);
   $('exportCsv').addEventListener('click', exportCsv);
 
-  setInterval(() => { if (isLive() && !document.hidden) load(); }, REFRESH_MS);
+  setInterval(() => { if (state.report && isLive() && !document.hidden) load(); }, REFRESH_MS);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && isLive() && state.loadedAt && Date.now() - state.loadedAt > REFRESH_MS) load();
+    if (!document.hidden && isLive() && state.report && state.loadedAt && Date.now() - state.loadedAt > REFRESH_MS) load();
   });
+
+  function renderNoGates() {
+    els.main.setAttribute('aria-busy', 'false');
+    els.main.innerHTML = `
+      <div class="card-x" style="margin:24px 0">
+        <div class="empty"><i class="bi bi-door-closed" aria-hidden="true"></i><h4>No gates assigned to you yet</h4>
+        <p>Ask an admin to map your account to your hostel's gates. The register will show those students once they do.</p></div>
+      </div>`;
+  }
 
   readUrl();
   renderSkeleton();
-  loadUser()
-    .then(load)
-    .catch((err) => (err instanceof AuthError ? toLogin() : renderError(`Couldn't reach the server: ${err.message}.`)));
+  AppNav.ready
+    .then((user) => {
+      state.user = user;
+      if (!user.isAdmin && !user.deviceIds.length) return renderNoGates();
+      return load();
+    })
+    .catch((err) => (err instanceof AppNav.AuthError ? toLogin() : renderError(`Couldn't reach the server: ${err.message}.`)));
 })();

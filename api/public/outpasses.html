@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outpasses · Aditya Hostels</title>
+<meta name="description" content="Issue outpasses, see who is out on one, and track when students report back.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+.pg-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; margin: 24px 0 18px; }
+.pg-title { margin: 0; font-size: 24px; font-weight: 800; color: var(--navy); }
+.pg-sub { margin: 4px 0 0; font-size: 14px; color: var(--muted); max-width: 66ch; }
+
+/* Night check banner (5.4) */
+.attn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-lg); border: 1px solid var(--line); background: #fff; margin-bottom: 18px; }
+.attn--good   { background: var(--good-bg); border-color: #c8ebd5; }
+.attn--danger { background: var(--bad-bg);  border-color: #f8c9c9; }
+.attn-icon { flex: none; width: 40px; height: 40px; border-radius: var(--r-md); background: #fff; display: grid; place-items: center; font-size: 19px; }
+.attn--good .attn-icon { color: var(--good); }
+.attn--danger .attn-icon { color: var(--bad); }
+.attn h3 { margin: 0; font-size: 15.5px; font-weight: 800; }
+.attn p { margin: 2px 0 0; font-size: 13.5px; }
+.attn .btn-x { margin-left: auto; }
+
+/* KPI tiles (5.3) */
+.kpis { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 18px; }
+.kpi {
+  --c: var(--primary); --tint: var(--primary-50);
+  display: flex; flex-direction: column; gap: 6px; padding: 16px 18px 14px; background: #fff; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-1); cursor: pointer;
+  transition: transform var(--t-fast), box-shadow var(--t-fast), border-color var(--t-fast);
+}
+.kpi:hover { transform: translateY(-2px); border-color: var(--c); box-shadow: var(--sh-2); }
+.kpi[aria-pressed="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c), var(--sh-1); }
+.kpi--warn { --c: var(--warn); --tint: var(--warn-bg); }
+.kpi--bad  { --c: var(--bad); --tint: var(--bad-bg); }
+.kpi--good { --c: var(--good); --tint: var(--good-bg); }
+.kpi-top { display: flex; align-items: center; gap: 10px; }
+.kpi-icon { flex: none; width: 40px; height: 40px; border-radius: var(--r-lg); background: var(--tint); color: var(--c); display: grid; place-items: center; font-size: 19px; }
+.kpi-label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.kpi-value { font: 800 26px/1.1 "Nunito", sans-serif; color: var(--navy); }
+.kpi-note { font-size: 12px; color: var(--muted); }
+
+/* List */
+.op-card { padding: 0; overflow: hidden; margin-bottom: 40px; }
+.op-card .card-x-head { padding: 18px 18px 0; }
+.op-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 0 18px 14px; }
+.op-dates { display: flex; align-items: center; gap: 6px; }
+.op-dates .lbl { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.op-dates input { font-size: 14px; color: var(--navy); }
+.op-search { margin-left: auto; width: 280px; }
+
+.op-table { width: 100%; border-collapse: collapse; }
+.op-table th, .op-table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.op-table thead th { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; background: var(--surface-2); border-top: 1px solid var(--line); border-bottom-color: var(--line); }
+.op-table tbody tr:hover > td { background: #fafbff; }
+.op-no { font: 700 13px ui-monospace, "SF Mono", Menlo, monospace; color: var(--navy); white-space: nowrap; }
+.op-type { margin-top: 4px; }
+.op-name { font-weight: 700; color: var(--navy); }
+.op-meta { display: flex; flex-wrap: wrap; column-gap: 6px; font-size: 12px; color: var(--muted); }
+.op-meta > :not(:last-child)::after { content: "·"; margin-left: 6px; color: var(--faint); }
+.op-meta a { color: var(--navy); font-weight: 600; text-decoration: none; }
+.op-reason { margin-top: 4px; font-size: 12.5px; color: var(--text); }
+.op-approved { font-size: 12px; color: var(--muted); }
+.op-approved b { color: var(--navy); font-weight: 600; }
+.op-win { white-space: nowrap; font-size: 13px; }
+.op-win b { color: var(--navy); }
+.op-win .sub, .op-state .sub { display: block; font-size: 12px; color: var(--muted); white-space: normal; }
+.op-state .chip { margin-bottom: 3px; }
+.op-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.op-actions .btn-x { min-height: 32px; padding: 5px 10px; font-size: 12.5px; }
+.btn-x--quiet { background: none; color: var(--bad); }
+.btn-x--quiet:hover:not(:disabled) { background: var(--bad-bg); }
+.op-foot { padding: 12px 18px; font-size: 12.5px; color: var(--muted); }
+
+/* Issue dialog */
+.dlg--wide { width: min(600px, calc(100vw - 32px)); }
+.dlg-body .fld, .dlg-body .grid-2, .dlg-body .seg-fld { margin-top: 16px; }
+.dlg-body > :first-child, .dlg-body > .alert-x + * { margin-top: 0; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.dlg-body .grid-2 > .fld { margin-top: 0; }
+.seg-fld { border: 0; padding: 0; margin-inline: 0; }
+.seg-fld legend { margin-bottom: 6px; padding: 0; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.seg label { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 10px; border-radius: 9px; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer; text-align: center; }
+.seg label small { font-size: 11.5px; font-weight: 600; opacity: .85; }
+.seg input { position: absolute; opacity: 0; }
+.seg label:has(input:checked) { background: #fff; color: var(--primary); box-shadow: 0 2px 8px rgba(1, 41, 112, .10); }
+.seg label:has(input:focus-visible) { box-shadow: var(--ring); }
+.inp input[type="datetime-local"] { font-size: 14.5px; }
+
+.picker { position: relative; }
+.picker-list { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); max-height: 260px; overflow-y: auto; margin: 0; padding: 4px; list-style: none; background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-3); }
+.picker-list li { display: flex; flex-direction: column; padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer; }
+.picker-list li[aria-selected="true"], .picker-list li:hover { background: var(--primary-50); }
+.picker-list b { color: var(--navy); font-size: 13.5px; }
+.picker-list span { font-size: 12px; color: var(--muted); }
+.picker-list .none { cursor: default; color: var(--muted); font-size: 13px; }
+.picked { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-lg); background: var(--primary-50); border: 1.5px solid #d6dcff; }
+.picked .rg-avatar { width: 36px; height: 36px; font-size: 13px; }
+.picked b { display: block; color: var(--navy); }
+.picked .op-meta { font-size: 12px; }
+.picked .btn-x { margin-left: auto; min-height: 32px; padding: 4px 10px; font-size: 12.5px; }
+.student-note { margin-top: 8px; }
+
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.quick button { border: 1px solid var(--line); background: #fff; border-radius: var(--r-pill); padding: 4px 11px; font-size: 12.5px; font-weight: 600; color: var(--navy); cursor: pointer; }
+.quick button:hover { border-color: var(--primary); color: var(--primary); }
+
+.issued-ok { text-align: center; padding: 6px 0 4px; }
+.issued-ok > i { width: 68px; height: 68px; margin: 0 auto 12px; border-radius: 50%; background: var(--good-bg); color: var(--good); font-size: 34px; display: grid; place-items: center; box-shadow: 0 0 0 8px #f3fbf6; }
+.issued-ok h3 { margin: 0; font-size: 19px; font-weight: 800; }
+.issued-ok .op-no { font-size: 16px; }
+.issued-ok p { margin: 6px 0 0; color: var(--muted); }
+
+@media (max-width: 1199px) {
+  .kpis { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .pg-title { font-size: 20px; }
+  .attn { align-items: flex-start; flex-wrap: wrap; }
+  .attn .btn-x { margin-left: 0; }
+  .op-search { margin-left: 0; width: 100%; }
+  .op-toolbar .seg { width: 100%; }
+  .op-table thead { display: none; }
+  .op-table, .op-table tbody { display: block; }
+  .op-table tbody { padding: 0 12px 4px; }
+  .op-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .op-table tbody td { display: block; padding: 0; border: 0; background: none !important; }
+  .op-table td.c-student { grid-column: 1; grid-row: 1; }
+  .op-table td.c-pass { grid-column: 2; grid-row: 1; text-align: right; }
+  .op-table td.c-win, .op-table td.c-state, .op-table td.c-actions { grid-column: 1 / -1; }
+  .op-actions { justify-content: flex-start; }
+  .op-actions .btn-x { flex: 1 1 auto; min-height: 40px; }
+  .op-table tbody tr.empty-row { display: block; border: 0; }
+}
+@media (max-width: 459px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .dlg-body .grid-2 > .fld + .fld { margin-top: 16px; }
+}
+</style>
+</head>
+<body>
+<header class="rg-top" id="appNav" data-page="outpasses"></header>
+
+<main class="rg-wrap" id="main" aria-busy="true">
+  <div class="pg-head">
+    <div>
+      <h1 class="pg-title">Outpasses</h1>
+      <p class="pg-sub">Issue a pass before a student goes out. Their gate punches record when they leave and when they report back. By night, everyone should be inside except students on a pass.</p>
+    </div>
+    <button class="btn-x btn-x--primary" type="button" id="issue"><i class="bi bi-ticket-perforated" aria-hidden="true"></i> Issue outpass</button>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <section class="attn" id="checkBox" aria-live="polite" hidden>
+    <span class="attn-icon" id="checkIcon" aria-hidden="true"></span>
+    <div><h3 id="checkTitle"></h3><p id="checkText"></p></div>
+    <a class="btn-x btn-x--ghost" id="checkLink" href="/?status=NOPASS" hidden>See who's out</a>
+  </section>
+
+  <section class="kpis" id="kpis" aria-label="Outpasses now"></section>
+
+  <section class="card-x op-card" aria-labelledby="listTitle">
+    <div class="card-x-head">
+      <h2 id="listTitle"><i class="bi bi-ticket-perforated" aria-hidden="true"></i>Outpasses</h2>
+      <span class="chip" id="count"></span>
+    </div>
+    <div class="op-toolbar">
+      <div class="seg" role="tablist" aria-label="Which outpasses" id="tabs"></div>
+      <div class="op-dates" id="dates" hidden>
+        <label class="lbl" for="from">From</label>
+        <div class="inp inp--sm"><input type="date" id="from"></div>
+        <label class="lbl" for="to">to</label>
+        <div class="inp inp--sm"><input type="date" id="to"></div>
+      </div>
+      <div class="op-search">
+        <label for="search" class="visually-hidden">Search outpasses</label>
+        <div class="inp inp--sm"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="search" placeholder="Search name, roll no. or pass no." autocomplete="off"></div>
+      </div>
+    </div>
+    <table class="op-table">
+      <thead><tr><th>Pass</th><th>Student</th><th>Out from → return by</th><th>Status</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="op-foot" id="foot">A pass counts as used from the first gate punch up to 30 minutes before its start time. The next punch marks the student as reported back.</div>
+  </section>
+</main>
+
+<!-- Issue -->
+<dialog class="dlg dlg--wide" id="issueDialog" aria-labelledby="issueTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head">
+      <div><h2 id="issueTitle">Issue outpass</h2><p id="issueSub">The student can leave through any gate once it's issued.</p></div>
+      <button class="btn-x btn-x--ghost btn-x--icon dlg-x" type="button" data-close aria-label="Close" title="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body" id="issueForm">
+      <div class="alert-x" role="alert" id="issueError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+
+      <div class="fld" id="pickFld">
+        <label for="pick">Student <sup>*</sup></label>
+        <div class="picker">
+          <div class="inp" id="pickBox"><i class="bi bi-search" aria-hidden="true"></i>
+            <input id="pick" role="combobox" aria-expanded="false" aria-controls="pickList" aria-autocomplete="list" autocomplete="off" placeholder="Type a name, roll number or room"></div>
+          <ul class="picker-list" id="pickList" role="listbox" hidden></ul>
+        </div>
+        <small class="fld-err" id="pickErr"></small>
+      </div>
+      <div id="picked" hidden></div>
+
+      <fieldset class="seg-fld">
+        <legend>Type <sup style="color:var(--bad)">*</sup></legend>
+        <div class="seg">
+          <label><input type="radio" name="type" value="outing" checked>Outing<small>Back the same day</small></label>
+          <label><input type="radio" name="type" value="leave">Leave<small>Stays out overnight</small></label>
+        </div>
+      </fieldset>
+
+      <div class="grid-2" style="margin-top:16px">
+        <div class="fld">
+          <label for="outFrom">Leaves from <sup>*</sup></label>
+          <div class="inp" id="outFromBox"><input type="datetime-local" id="outFrom" step="300"></div>
+        </div>
+        <div class="fld">
+          <label for="returnBy">Must be back by <sup>*</sup></label>
+          <div class="inp" id="returnByBox"><input type="datetime-local" id="returnBy" step="300"></div>
+        </div>
+      </div>
+      <small class="fld-err" id="timeErr"></small>
+
+      <div class="fld">
+        <label for="reason">Reason <sup>*</sup></label>
+        <div class="inp" id="reasonBox"><i class="bi bi-chat-left-text" aria-hidden="true"></i><input id="reason" maxlength="255" autocomplete="off" placeholder="Why they're going out"></div>
+        <div class="quick" id="quick" aria-label="Common reasons"></div>
+        <small class="fld-err" id="reasonErr"></small>
+      </div>
+      <div class="fld">
+        <label for="approvedBy">Approved by <sup>*</sup></label>
+        <div class="inp" id="approvedByBox"><i class="bi bi-person-check" aria-hidden="true"></i><input id="approvedBy" list="approverList" maxlength="100" autocomplete="off" placeholder="Who gave permission, e.g. Father on phone, HOD CSE"></div>
+        <div class="quick" id="approverQuick" aria-label="Common approvers"></div>
+        <small class="fld-err" id="approvedByErr"></small>
+      </div>
+      <datalist id="approverList"></datalist>
+      <div class="fld">
+        <label for="destination">Going to</label>
+        <div class="inp"><i class="bi bi-geo-alt" aria-hidden="true"></i><input id="destination" maxlength="255" autocomplete="off" placeholder="e.g. Kakinada town, home in Rajahmundry"></div>
+      </div>
+    </div>
+    <div class="dlg-body" id="issueDone" hidden>
+      <div class="issued-ok">
+        <i class="bi bi-check-lg" aria-hidden="true"></i>
+        <h3>Outpass issued</h3>
+        <div class="op-no" id="doneNo"></div>
+        <p id="doneText"></p>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-x btn-x--ghost" type="button" data-close id="issueCancel">Cancel</button>
+      <a class="btn-x btn-x--ghost" id="donePrint" target="_blank" rel="noopener" hidden><i class="bi bi-printer" aria-hidden="true"></i> Print outpass</a>
+      <button class="btn-x btn-x--primary" type="submit" id="issueSubmit">Issue outpass</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Reported back -->
+<dialog class="dlg" id="returnDialog" aria-labelledby="returnTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head">
+      <div><h2 id="returnTitle">Mark reported back</h2><p id="returnSub"></p></div>
+      <button class="btn-x btn-x--ghost btn-x--icon dlg-x" type="button" data-close aria-label="Close" title="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body">
+      <div class="alert-x" role="alert" id="returnError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+      <p style="margin:0 0 4px">Use this when the student reported back without punching at the gate. A gate punch is recorded automatically.</p>
+      <div class="fld">
+        <label for="returnAt">Reported back at <sup>*</sup></label>
+        <div class="inp"><input type="datetime-local" id="returnAt"></div>
+      </div>
+      <div class="fld">
+        <label for="returnNote">Note</label>
+        <div class="inp"><i class="bi bi-chat-left-text" aria-hidden="true"></i><input id="returnNote" maxlength="255" autocomplete="off" placeholder="e.g. Reported to the warden in person"></div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-x btn-x--ghost" type="button" data-close>Cancel</button>
+      <button class="btn-x btn-x--primary" type="submit" id="returnSubmit">Mark reported back</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Extend -->
+<dialog class="dlg" id="extendDialog" aria-labelledby="extendTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head">
+      <div><h2 id="extendTitle">Extend outpass</h2><p id="extendSub"></p></div>
+      <button class="btn-x btn-x--ghost btn-x--icon dlg-x" type="button" data-close aria-label="Close" title="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body">
+      <div class="alert-x" role="alert" id="extendError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+      <div class="fld" style="margin-top:0">
+        <label for="extendTo">New return time <sup>*</sup></label>
+        <div class="inp"><input type="datetime-local" id="extendTo" step="300"></div>
+        <small class="fld-hint">An outing extended past midnight becomes a leave.</small>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-x btn-x--ghost" type="button" data-close>Cancel</button>
+      <button class="btn-x btn-x--primary" type="submit" id="extendSubmit">Extend outpass</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Cancel -->
+<dialog class="dlg" id="cancelDialog" aria-labelledby="cancelTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head"><div><h2 id="cancelTitle">Cancel outpass?</h2><p id="cancelSub"></p></div></div>
+    <div class="dlg-body" style="padding-top:8px">
+      <div class="alert-x" role="alert" id="cancelError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+      <p style="margin:0">The student hasn't left yet. If they go out after this, they'll show as out without an outpass.</p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-x btn-x--ghost" type="button" data-close>Keep outpass</button>
+      <button class="btn-x btn-x--danger" type="submit" id="cancelSubmit">Cancel outpass</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="nav.js"></script>
+<script src="outpasses.js"></script>
+</body>
+</html>

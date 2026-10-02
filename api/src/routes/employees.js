@@ -6,7 +6,7 @@ const { queryLogs } = require('./logs');
 // Never expose LoginPassword / EmployeeDevicePassword.
 const EMPLOYEE_COLUMNS = `EmployeeId, EmployeeName, EmployeeCode, EmployeeCodeInDevice, Gender,
   Designation, DepartmentId, CompanyId, CategoryId, EmployeeRFIDNumber, EmployementType, Status,
-  ContactNo, Email, Location, DOJ`;
+  ContactNo, Email, Location, DOJ, WorkPlace AS Campus, C1 AS Block, C2 AS RoomNo, C3 AS BedNo`;
 
 router.get('/', asyncHandler(async (req, res) => {
   const { page, limit, offset } = pagination(req.query);
@@ -46,7 +46,7 @@ router.get('/:code', asyncHandler(async (req, res) => {
 
 router.get('/:code/logs', asyncHandler(async (req, res) => {
   const employee = await findEmployee(req.params.code);
-  const result = await queryLogs({ ...req.query, userId: employee.EmployeeCodeInDevice });
+  const result = await queryLogs({ ...req.query, userId: employee.EmployeeCodeInDevice }, req.user.deviceIds);
   res.json({ employee, ...result });
 }));
 

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERP sync · Aditya Hostels</title>
+<meta name="description" content="Let the college ERP update hostel student details through a webhook.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+.pg-head { margin: 24px 0 18px; }
+.pg-title { margin: 0; font-size: 24px; font-weight: 800; color: var(--navy); }
+.pg-sub { margin: 4px 0 0; font-size: 14px; color: var(--muted); max-width: 70ch; }
+
+.erp-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; margin-bottom: 18px; }
+.erp-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.card-x.flush { padding: 0; overflow: hidden; }
+.card-x.flush .card-x-head { padding: 18px 18px 0; }
+.card-x.flush .card-x-foot { padding: 12px 18px; font-size: 12.5px; color: var(--muted); }
+
+/* Endpoint facts */
+.facts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 0; }
+.facts > div { background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--r-md); padding: 9px 11px; }
+.facts dt { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.facts dd { margin: 2px 0 0; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.facts code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font: 600 13px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--navy); }
+.facts .btn-x { min-height: 30px; padding: 4px 10px; font-size: 12.5px; flex: none; }
+.method { display: inline-block; padding: 1px 7px; margin-right: 6px; border-radius: var(--r-xs); background: var(--good-bg); color: var(--good); font: 800 11.5px ui-monospace, Menlo, monospace; }
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; }
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th, .tbl td { padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: middle; white-space: nowrap; }
+.tbl thead th { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; background: var(--surface-2); border-top: 1px solid var(--line); border-bottom-color: var(--line); }
+.tbl .num { text-align: right; }
+.tbl b { color: var(--navy); }
+.tbl .sub { display: block; font-size: 12px; color: var(--muted); }
+.tbl code { font: 600 12.5px ui-monospace, Menlo, monospace; color: var(--navy); }
+.tbl tr.is-revoked td { color: var(--faint); }
+.tbl tr.is-revoked b, .tbl tr.is-revoked code { color: var(--faint); }
+.tbl td .btn-x { min-height: 32px; padding: 5px 10px; font-size: 12.5px; }
+.btn-x--quiet { background: none; color: var(--bad); }
+.btn-x--quiet:hover:not(:disabled) { background: var(--bad-bg); }
+.zero { color: var(--faint); }
+.n-bad { color: var(--bad); font-weight: 700; }
+.errs summary { cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--bad); }
+.errs ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; white-space: normal; max-width: 60ch; }
+tr.err-row > td { background: #fffafa; white-space: normal; padding-top: 0; }
+
+/* Format reference */
+.fields { width: 100%; border-collapse: collapse; font-size: 13px; }
+.fields td { padding: 8px 0; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.fields td:first-child { width: 92px; padding-right: 10px; }
+.fields code { font: 700 12.5px ui-monospace, Menlo, monospace; color: var(--navy); }
+.fields .req { display: block; font-size: 10.5px; font-weight: 700; color: var(--bad); text-transform: uppercase; letter-spacing: .03em; }
+.fields .col { display: block; font-size: 11.5px; color: var(--muted); }
+pre.code {
+  margin: 10px 0 0; padding: 12px 14px; overflow-x: auto; border-radius: var(--r-md); background: #0f1d3d; color: #dbe4ff;
+  font: 12.5px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.code-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.code-head h3 { margin: 0; font-size: 14px; font-weight: 800; }
+.code-head .btn-x { min-height: 30px; padding: 4px 10px; font-size: 12.5px; }
+.rules { margin: 12px 0 0; padding-left: 18px; font-size: 13px; }
+.rules li + li { margin-top: 4px; }
+
+/* New key reveal */
+.reveal { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface-2); border: 1.5px dashed #c9d1f5; }
+.reveal code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font: 700 13.5px ui-monospace, Menlo, monospace; color: var(--navy); }
+
+@media (max-width: 991px) {
+  .erp-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 767px) {
+  .pg-title { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+<header class="rg-top" id="appNav" data-page="erp"></header>
+
+<main class="rg-wrap" id="main" aria-busy="true">
+  <div class="pg-head">
+    <h1 class="pg-title">ERP sync</h1>
+    <p class="pg-sub">The college ERP can send student details here whenever they change. Students are matched on roll number. New roll numbers are added, and for existing students only the fields the ERP sends are changed.</p>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <div class="erp-grid">
+    <div class="erp-stack">
+      <section class="card-x" aria-labelledby="endpointTitle">
+        <div class="card-x-head"><h2 id="endpointTitle"><i class="bi bi-plug" aria-hidden="true"></i>Webhook address</h2></div>
+        <dl class="facts">
+          <div><dt>URL</dt><dd><span class="method">POST</span><code id="hookUrl"></code><button class="btn-x btn-x--ghost" type="button" data-copy="hookUrl">Copy</button></dd></div>
+          <div><dt>Header</dt><dd><code>Authorization: Bearer &lt;key&gt;</code></dd></div>
+          <div><dt>Body</dt><dd><code>Content-Type: application/json</code></dd></div>
+        </dl>
+        <p class="fld-hint" style="margin-top:12px">Give the ERP team this address and a key from below. The address must be reachable from the ERP server: use the API's LAN or public address if this page is open on <code>localhost</code>.</p>
+      </section>
+
+      <section class="card-x flush" aria-labelledby="keysTitle">
+        <div class="card-x-head">
+          <h2 id="keysTitle"><i class="bi bi-key" aria-hidden="true"></i>Keys</h2>
+          <button class="btn-x btn-x--primary" type="button" id="newKey"><i class="bi bi-plus-lg" aria-hidden="true"></i> Create key</button>
+        </div>
+        <div class="tbl-wrap" style="margin-top:14px">
+          <table class="tbl">
+            <thead><tr><th>Name</th><th>Key</th><th>Last used</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody id="keyRows"></tbody>
+          </table>
+        </div>
+        <div class="card-x-foot">Each key shows once, when it's created. Revoke a key straight away if it leaks, then create a new one.</div>
+      </section>
+    </div>
+
+    <section class="card-x" aria-labelledby="formatTitle">
+      <div class="card-x-head"><h2 id="formatTitle"><i class="bi bi-braces" aria-hidden="true"></i>What the ERP sends</h2></div>
+      <table class="fields">
+        <tbody>
+          <tr><td><code>code</code><span class="req">Required</span></td><td>Roll number. Must match the student's user id on the gate device.</td></tr>
+          <tr><td><code>name</code></td><td>Full name. Needed to add a new student.</td></tr>
+          <tr><td><code>gender</code></td><td><code>Male</code> or <code>Female</code> (<code>M</code> / <code>F</code> also work). Needed to add a new student.</td></tr>
+          <tr><td><code>campus</code></td><td>Where the student studies.<span class="col">Saved in WorkPlace</span></td></tr>
+          <tr><td><code>block</code></td><td>Hostel block.<span class="col">Saved in C1</span></td></tr>
+          <tr><td><code>room</code></td><td>Room number.<span class="col">Saved in C2</span></td></tr>
+          <tr><td><code>bed</code></td><td>Bed number. One student per bed.<span class="col">Saved in C3</span></td></tr>
+          <tr><td><code>phone</code></td><td>10–15 digits.</td></tr>
+        </tbody>
+      </table>
+      <ul class="rules">
+        <li>Leave a field out to keep its current value. Send <code>""</code> or <code>null</code> to clear it.</li>
+        <li>Up to <span id="maxRecords">2,000</span> students per request, applied in order. One bad record doesn't stop the others.</li>
+        <li>To swap two students' beds, clear one bed first in the same request.</li>
+      </ul>
+
+      <div class="code-head"><h3>Example request</h3><button class="btn-x btn-x--ghost" type="button" data-copy="exampleReq">Copy</button></div>
+      <pre class="code" id="exampleReq"></pre>
+
+      <div class="code-head"><h3>Response</h3></div>
+      <pre class="code">{
+  "received": 2,
+  "created": 1, "updated": 0, "unchanged": 0,
+  "failed": 1,
+  "errors": [{
+    "index": 1,
+    "code": "324955",
+    "error": "Bed 1 in A Block, room 102 is
+              already given to …"
+  }]
+}</pre>
+      <p class="fld-hint" style="margin-top:8px">Status 200 means the request was processed: check <code>failed</code> and <code>errors</code> for records that weren't saved. 401 means the key is missing, wrong or revoked.</p>
+    </section>
+  </div>
+
+  <section class="card-x flush" aria-labelledby="logTitle" style="margin-bottom:40px">
+    <div class="card-x-head">
+      <h2 id="logTitle"><i class="bi bi-clock-history" aria-hidden="true"></i>Recent deliveries</h2>
+      <button class="btn-x btn-x--ghost" type="button" id="refresh"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Refresh</button>
+    </div>
+    <div class="tbl-wrap" style="margin-top:14px">
+      <table class="tbl">
+        <thead><tr><th>Received at</th><th>Key</th><th>Result</th><th class="num">Students</th><th class="num">Added</th><th class="num">Updated</th><th class="num">No change</th><th class="num">Failed</th></tr></thead>
+        <tbody id="logRows"></tbody>
+      </table>
+    </div>
+    <div class="card-x-foot">Shows the last 30 requests.</div>
+  </section>
+</main>
+
+<dialog class="dlg" id="keyDialog" aria-labelledby="keyDlgTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head">
+      <div><h2 id="keyDlgTitle">Create key</h2><p id="keyDlgSub">Name it after the system that will use it.</p></div>
+      <button class="btn-x btn-x--ghost btn-x--icon dlg-x" type="button" data-close aria-label="Close" title="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body">
+      <div class="alert-x" role="alert" id="keyError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+      <div id="keyAsk">
+        <div class="fld">
+          <label for="keyName">Name <sup>*</sup></label>
+          <div class="inp"><i class="bi bi-tag" aria-hidden="true"></i><input id="keyName" maxlength="100" autocomplete="off" placeholder="e.g. College ERP"></div>
+        </div>
+      </div>
+      <div id="keyShow" hidden>
+        <div class="alert-x alert-x--note" style="margin-bottom:12px"><i class="bi bi-eye-slash" aria-hidden="true"></i><span>Copy this key now. You won't be able to see it again.</span></div>
+        <div class="reveal"><code id="keyValue"></code><button class="btn-x btn-x--ghost" type="button" data-copy="keyValue">Copy</button></div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-x btn-x--ghost" type="button" data-close id="keyCancel">Cancel</button>
+      <button class="btn-x btn-x--primary" type="submit" id="keySubmit">Create key</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="revokeDialog" aria-labelledby="revokeTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head"><div><h2 id="revokeTitle">Revoke key?</h2><p id="revokeSub"></p></div></div>
+    <div class="dlg-body" style="padding-top:8px">
+      <div class="alert-x" role="alert" id="revokeError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+      <p style="margin:0">Requests with this key will be refused straight away. This can't be undone. Create a new key if the ERP still needs access.</p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-x btn-x--ghost" type="button" data-close>Cancel</button>
+      <button class="btn-x btn-x--danger" type="submit" id="revokeSubmit">Revoke key</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="nav.js"></script>
+<script src="erp.js"></script>
+</body>
+</html>

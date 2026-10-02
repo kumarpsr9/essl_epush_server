@@ -11,6 +11,11 @@ const app = express();
 // The report page is served over plain http on the LAN, so don't force https subresources.
 app.use(helmet({ contentSecurityPolicy: { directives: { upgradeInsecureRequests: null } } }));
 app.use(cors({ origin: corsOrigin }));
+
+// ERP webhook: authenticated by its own key, and allowed a larger body for bulk syncs.
+const webhooks = require('./routes/webhooks');
+app.use('/hooks', express.json({ limit: '5mb' }), webhooks.hooks);
+
 app.use(express.json());
 
 // Static pages hold no data; the register page calls /api with the signed-in session.
@@ -27,6 +32,10 @@ app.use('/api/devices', require('./routes/devices'));
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/logs', require('./routes/logs'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/students', require('./routes/students'));
+app.use('/api/outpasses', require('./routes/outpasses'));
+app.use('/api/users', auth.requireAdmin, require('./routes/users'));
+app.use('/api/webhooks', auth.requireAdmin, webhooks.admin);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 

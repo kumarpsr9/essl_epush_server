@@ -16,6 +16,11 @@ function today() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 }
 
+// Current IST wall-clock time as 'YYYY-MM-DD HH:MM:SS', the format LogDate uses.
+function nowIST() {
+  return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Kolkata' });
+}
+
 function parseDate(value, name) {
   if (!DATE_RE.test(value) || Number.isNaN(Date.parse(value))) {
     throw new HttpError(400, `${name} must be a date in YYYY-MM-DD format`);
@@ -38,4 +43,4 @@ function pagination(query, { defaultLimit = 50, maxLimit = 500 } = {}) {
   return { page, limit, offset: (page - 1) * limit };
 }
 
-module.exports = { HttpError, asyncHandler, dateRange, pagination };
+module.exports = { HttpError, asyncHandler, dateRange, pagination, today, nowIST };
