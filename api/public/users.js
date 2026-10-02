@@ -31,7 +31,7 @@
   // ---------- load ----------
   async function load() {
     try {
-      const [users, devices] = await Promise.all([api('/api/users'), api('/api/devices')]);
+      const [users, devices] = await Promise.all([api('api/users'), api('api/devices')]);
       state.users = users.data;
       state.devices = devices.data;
       $('errorBox').innerHTML = '';
@@ -217,9 +217,9 @@
     setBusy(btn, true, '', editing ? 'Saving…' : 'Adding…');
     try {
       if (editing) {
-        await api(`/api/users/${editing.id}`, { method: 'PATCH', json: body });
+        await api(`api/users/${editing.id}`, { method: 'PATCH', json: body });
       } else {
-        await api('/api/users', { json: { ...body, username: $('uName').value.trim(), password: $('uPass').value } });
+        await api('api/users', { json: { ...body, username: $('uName').value.trim(), password: $('uPass').value } });
       }
       $('userDialog').close();
       toast(editing ? `Saved changes to ${editing.name}` : `Added ${$('uName').value.trim()}`);
@@ -256,7 +256,7 @@
     const btn = $('pwResetSubmit');
     setBusy(btn, true, '', 'Resetting…');
     try {
-      await api(`/api/users/${state.target.id}/password`, { method: 'PUT', json: { password: $('rPass').value } });
+      await api(`api/users/${state.target.id}/password`, { method: 'PUT', json: { password: $('rPass').value } });
       $('pwResetDialog').close();
       toast(`Password reset for ${state.target.name}`);
     } catch (err) {
@@ -283,7 +283,7 @@
     const btn = $('deleteSubmit');
     setBusy(btn, true, '', 'Deleting…');
     try {
-      await api(`/api/users/${state.target.id}`, { method: 'DELETE' });
+      await api(`api/users/${state.target.id}`, { method: 'DELETE' });
       $('deleteDialog').close();
       toast(`Deleted ${state.target.name}`);
       await load();
@@ -318,7 +318,7 @@
       $('main').setAttribute('aria-busy', 'false');
       $('main').innerHTML = `<div class="card-x" style="margin:24px 0"><div class="empty"><i class="bi bi-shield-lock" aria-hidden="true"></i>
         <h4>Only admins can manage users</h4><p>Ask an admin if you need someone added or a password reset.</p>
-        <a class="btn-x btn-x--primary" href="/register.html">Go to the movement register</a></div></div>`;
+        <a class="btn-x btn-x--primary" href="register.html">Go to the movement register</a></div></div>`;
       return;
     }
     $('addUser').hidden = false;

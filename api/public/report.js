@@ -72,7 +72,7 @@
   }
 
   function toLogin() {
-    location.replace(`/?next=${encodeURIComponent(location.pathname + location.search)}`);
+    location.replace(`./?next=${encodeURIComponent(location.pathname + location.search)}`);
   }
 
   class AuthError extends Error {}
@@ -116,10 +116,10 @@
     try {
       const optional = (p) => p.catch((e) => { if (e instanceof AuthError) throw e; return null; });
       const [report, students, devices, passes] = await Promise.all([
-        api(`/api/reports/hostel/devices?${qs}`),
-        api(`/api/reports/hostel/students?${qs}`),
-        optional(api('/api/devices')).then((d) => d || { data: [] }),
-        isLive() ? optional(api('/api/outpasses')) : null,
+        api(`api/reports/hostel/devices?${qs}`),
+        api(`api/reports/hostel/students?${qs}`),
+        optional(api('api/devices')).then((d) => d || { data: [] }),
+        isLive() ? optional(api('api/outpasses')) : null,
       ]);
       if (seq !== loadSeq) return;
       state.issuedNotLeft = passes ? passes.data.filter((p) => p.state === 'issued').length : null;
@@ -356,7 +356,7 @@
     if (!p) return '<span class="chip chip--warn"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Out</span>';
     const label = p.overdue ? 'Overdue' : s.awayOvernight && !s.hasPunches ? 'Away on leave' : 'Out on outpass';
     return `<span class="chip ${p.overdue ? 'chip--bad' : 'chip--warn'}"><i class="bi ${p.overdue ? 'bi-alarm' : 'bi-ticket-perforated'}" aria-hidden="true"></i> ${label}</span>
-      <a class="rg-pass" href="/outpasses.html" title="Open outpasses">${esc(p.passNo)} · back by ${esc(p.returnBy.slice(0, 10) === els.date.value ? p.returnBy.slice(11, 16) : fmtShort(p.returnBy))}</a>`;
+      <a class="rg-pass" href="outpasses.html" title="Open outpasses">${esc(p.passNo)} · back by ${esc(p.returnBy.slice(0, 10) === els.date.value ? p.returnBy.slice(11, 16) : fmtShort(p.returnBy))}</a>`;
   }
   const fmtShort = (dt) => `${new Date(`${dt.slice(0, 10)}T12:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} ${dt.slice(11, 16)}`;
 

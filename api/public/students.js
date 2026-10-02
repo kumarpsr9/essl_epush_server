@@ -37,7 +37,7 @@
   // ---------- load ----------
   async function load() {
     try {
-      const { data } = await api('/api/students');
+      const { data } = await api('api/students');
       state.students = data;
       $('errorBox').innerHTML = '';
       render();
@@ -275,8 +275,8 @@
     if (e.submitter) e.submitter.textContent = editing ? 'Saving…' : 'Adding…';
     try {
       const { data } = editing
-        ? await api(`/api/students/${encodeURIComponent(editing.code)}`, { method: 'PATCH', json: v })
-        : await api('/api/students', { json: v });
+        ? await api(`api/students/${encodeURIComponent(editing.code)}`, { method: 'PATCH', json: v })
+        : await api('api/students', { json: v });
       const i = state.students.findIndex((s) => s.code === data.code);
       if (i >= 0) state.students[i] = data; else state.students.push(data);
       toast(editing ? `Saved ${data.name}` : `Added ${data.name}`);

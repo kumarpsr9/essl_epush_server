@@ -73,14 +73,14 @@
     if (state.tab === 'history') { qs.set('from', $('from').value); qs.set('to', $('to').value); }
     try {
       const [list, register] = await Promise.all([
-        api(`/api/outpasses?${qs}`),
-        api('/api/reports/hostel/devices').catch((e) => { if (e instanceof AuthError) throw e; return null; }),
+        api(`api/outpasses?${qs}`),
+        api('api/reports/hostel/devices').catch((e) => { if (e instanceof AuthError) throw e; return null; }),
       ]);
       state.now = list.now;
       state.passes = list.data;
       state.today = list.today;
       if (list.view === 'open') state.openPasses = list.data;
-      else if (!state.openPasses.length) state.openPasses = (await api('/api/outpasses')).data;
+      else if (!state.openPasses.length) state.openPasses = (await api('api/outpasses')).data;
       state.totals = register?.totals || null;
       $('errorBox').innerHTML = '';
       render();
@@ -166,7 +166,7 @@
   }
 
   function actions(p) {
-    const b = [`<a class="btn-x btn-x--ghost" href="/outpass-print.html?id=${p.id}" target="_blank" rel="noopener"><i class="bi bi-printer" aria-hidden="true"></i> Print</a>`];
+    const b = [`<a class="btn-x btn-x--ghost" href="outpass-print.html?id=${p.id}" target="_blank" rel="noopener"><i class="bi bi-printer" aria-hidden="true"></i> Print</a>`];
     if (p.state === 'out' || p.state === 'overdue') {
       b.push(`<button class="btn-x btn-x--ghost" type="button" data-act="return" data-id="${p.id}"><i class="bi bi-box-arrow-in-left" aria-hidden="true"></i> Reported back</button>`);
     }
@@ -267,7 +267,7 @@
     $('pick').focus();
     if (!state.students) {
       try {
-        state.students = (await api('/api/students')).data;
+        state.students = (await api('api/students')).data;
         matches = search($('pick').value);
         active = matches.length ? 0 : -1;
         if ($('pick').value.trim()) renderPicker();
@@ -378,7 +378,7 @@
     if (!$('issueDone').hidden) { issueDlg.close(); return; }
     if (!validateIssue()) return;
     submitWith($('issueSubmit'), 'Issuing…', 'issueError', async () => {
-      const { data } = await api('/api/outpasses', {
+      const { data } = await api('api/outpasses', {
         json: {
           code: state.picked.code, type: typeValue(), reason: $('reason').value.trim(), destination: $('destination').value.trim(),
           approvedBy: $('approvedBy').value.trim(),
@@ -393,7 +393,7 @@
       $('doneText').textContent = data.departedAt
         ? `They had already gone out at ${hhmm(data.departedAt)}. That punch now counts as leaving on this pass.`
         : 'Their next gate punch will be recorded as leaving.';
-      $('donePrint').href = `/outpass-print.html?id=${data.id}`;
+      $('donePrint').href = `outpass-print.html?id=${data.id}`;
       $('donePrint').hidden = false;
       $('issueCancel').hidden = true;
       setTimeout(() => { $('issueSubmit').textContent = 'Done'; });
@@ -420,7 +420,7 @@
   $('returnDialog').querySelector('form').addEventListener('submit', (e) => {
     e.preventDefault();
     submitWith($('returnSubmit'), 'Saving…', 'returnError', async () => {
-      const { data } = await api(`/api/outpasses/${state.target.id}/return`, { json: { at: $('returnAt').value, note: $('returnNote').value } });
+      const { data } = await api(`api/outpasses/${state.target.id}/return`, { json: { at: $('returnAt').value, note: $('returnNote').value } });
       $('returnDialog').close();
       toast(`${data.name || data.code} marked reported back${data.lateMinutes ? `, ${duration(data.lateMinutes)} late` : ''}`);
       load();
@@ -441,7 +441,7 @@
     e.preventDefault();
     if (!$('extendTo').value) { dlgError('extendError', 'Enter the new return time'); return; }
     submitWith($('extendSubmit'), 'Extending…', 'extendError', async () => {
-      const { data } = await api(`/api/outpasses/${state.target.id}/extend`, { json: { returnBy: $('extendTo').value } });
+      const { data } = await api(`api/outpasses/${state.target.id}/extend`, { json: { returnBy: $('extendTo').value } });
       $('extendDialog').close();
       toast(`Extended ${data.passNo} to ${whenText(data.returnBy)}`);
       load();
@@ -459,7 +459,7 @@
   $('cancelDialog').querySelector('form').addEventListener('submit', (e) => {
     e.preventDefault();
     submitWith($('cancelSubmit'), 'Cancelling…', 'cancelError', async () => {
-      const { data } = await api(`/api/outpasses/${state.target.id}/cancel`, { method: 'POST' });
+      const { data } = await api(`api/outpasses/${state.target.id}/cancel`, { method: 'POST' });
       $('cancelDialog').close();
       toast(`Cancelled ${data.passNo}`);
       load();

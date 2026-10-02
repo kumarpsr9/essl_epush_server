@@ -7,11 +7,11 @@ window.AppNav = (() => {
   const page = header.dataset.page;
 
   const PAGES = [
-    { id: 'register', href: '/register.html', icon: 'bi-door-open', label: 'Movement register' },
-    { id: 'outpasses', href: '/outpasses.html', icon: 'bi-ticket-perforated', label: 'Outpasses' },
-    { id: 'students', href: '/students.html', icon: 'bi-person-vcard', label: 'Students' },
-    { id: 'users', href: '/users.html', icon: 'bi-people', label: 'Users', adminOnly: true },
-    { id: 'erp', href: '/erp.html', icon: 'bi-plug', label: 'ERP sync', adminOnly: true },
+    { id: 'register', href: 'register.html', icon: 'bi-door-open', label: 'Movement register' },
+    { id: 'outpasses', href: 'outpasses.html', icon: 'bi-ticket-perforated', label: 'Outpasses' },
+    { id: 'students', href: 'students.html', icon: 'bi-person-vcard', label: 'Students' },
+    { id: 'users', href: 'users.html', icon: 'bi-people', label: 'Users', adminOnly: true },
+    { id: 'erp', href: 'erp.html', icon: 'bi-plug', label: 'ERP sync', adminOnly: true },
   ];
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -34,7 +34,7 @@ window.AppNav = (() => {
   }
 
   function toLogin() {
-    location.replace(`/?next=${encodeURIComponent(location.pathname + location.search)}`);
+    location.replace(`./?next=${encodeURIComponent(location.pathname + location.search)}`);
   }
 
   let toastTimer;
@@ -62,7 +62,7 @@ window.AppNav = (() => {
 
     header.innerHTML = `
       <div class="rg-wrap">
-        <a class="rg-brand" href="/register.html">
+        <a class="rg-brand" href="register.html">
           <i class="bi bi-building" aria-hidden="true"></i>
           <span><b>Aditya Hostels</b><small>Student movement register</small></span>
         </a>
@@ -100,8 +100,8 @@ window.AppNav = (() => {
       if (item.dataset.action === 'password') openPasswordDialog();
       if (item.dataset.action === 'logout') {
         item.disabled = true;
-        await api('/auth/logout', { method: 'POST' }).catch(() => {});
-        location.replace('/');
+        await api('auth/logout', { method: 'POST' }).catch(() => {});
+        location.replace('./');
       }
     });
   }
@@ -156,7 +156,7 @@ window.AppNav = (() => {
         submit.disabled = true;
         submit.textContent = 'Changing…';
         try {
-          await api('/auth/password', { json: { currentPassword: current, newPassword: next } });
+          await api('auth/password', { json: { currentPassword: current, newPassword: next } });
           dlg.close();
           toast('Password changed');
         } catch (err) {
@@ -174,7 +174,7 @@ window.AppNav = (() => {
     dlg.querySelector('#pwCurrent').focus();
   }
 
-  const ready = api('/auth/me').then(({ user }) => { render(user); return user; });
+  const ready = api('auth/me').then(({ user }) => { render(user); return user; });
   ready.catch((err) => { if (err instanceof AuthError) toLogin(); });
 
   return { ready, api, toast, esc, AuthError, toLogin };

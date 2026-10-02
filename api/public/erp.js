@@ -3,7 +3,8 @@
 
   const { api, toast, esc, AuthError, toLogin } = AppNav;
   const $ = (id) => document.getElementById(id);
-  let hookUrl = `${location.origin}/hooks/students`; // replaced by PUBLIC_BASE_URL from the server when set
+  // Same folder as this page (works under a proxy prefix like /hostel/); replaced by PUBLIC_BASE_URL when set.
+  let hookUrl = new URL('hooks/students', location.href).href;
   const state = { keys: [], log: [], target: null };
 
   const num = (n) => n.toLocaleString('en-IN');
@@ -66,7 +67,7 @@
   // ---------- load ----------
   async function load() {
     try {
-      const data = await api('/api/webhooks');
+      const data = await api('api/webhooks');
       state.keys = data.keys;
       state.log = data.log;
       $('maxRecords').textContent = num(data.maxRecords);
@@ -157,7 +158,7 @@
     btn.disabled = true;
     btn.textContent = 'Creating…';
     try {
-      const { data } = await api('/api/webhooks/keys', { json: { name } });
+      const { data } = await api('api/webhooks/keys', { json: { name } });
       $('keyValue').textContent = data.token;
       $('keyAsk').hidden = true;
       $('keyShow').hidden = false;
@@ -184,7 +185,7 @@
     btn.disabled = true;
     btn.textContent = 'Revoking…';
     try {
-      await api(`/api/webhooks/keys/${state.target.id}`, { method: 'DELETE' });
+      await api(`api/webhooks/keys/${state.target.id}`, { method: 'DELETE' });
       revokeDlg.close();
       toast(`Revoked ${state.target.name}`);
       load();
@@ -218,7 +219,7 @@
       $('main').setAttribute('aria-busy', 'false');
       $('main').innerHTML = `<div class="card-x" style="margin:24px 0"><div class="empty"><i class="bi bi-shield-lock" aria-hidden="true"></i>
         <h4>Only admins can manage ERP sync</h4><p>Ask an admin if student details from the ERP look wrong.</p>
-        <a class="btn-x btn-x--primary" href="/register.html">Go to the movement register</a></div></div>`;
+        <a class="btn-x btn-x--primary" href="register.html">Go to the movement register</a></div></div>`;
       return;
     }
     load();

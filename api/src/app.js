@@ -18,11 +18,12 @@ app.use('/hooks', express.json({ limit: '5mb' }), webhooks.hooks);
 
 app.use(express.json());
 
-// The sign-in page is the site root (index.html); the register lives at /register.html.
-// Old bookmarks to /login.html still work.
+// The sign-in page is the site root (index.html); the register lives at register.html.
+// Old bookmarks to login.html still work. The redirect is relative so it keeps any proxy
+// prefix the app is served under (e.g. https://analysis.aditya.ac.in/hostel/).
 app.get('/login.html', (req, res) => {
   const i = req.originalUrl.indexOf('?');
-  res.redirect(301, `/${i >= 0 ? req.originalUrl.slice(i) : ''}`);
+  res.redirect(301, `./${i >= 0 ? req.originalUrl.slice(i) : ''}`);
 });
 
 // Static pages hold no data; each page calls /api with the signed-in session.

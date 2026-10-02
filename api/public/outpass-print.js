@@ -15,10 +15,10 @@
   $('print').addEventListener('click', () => window.print());
 
   const id = new URLSearchParams(location.search).get('id');
-  fetch(`/api/outpasses/${encodeURIComponent(id || '')}`, { credentials: 'same-origin' })
+  fetch(`api/outpasses/${encodeURIComponent(id || '')}`, { credentials: 'same-origin' })
     .then(async (res) => {
       if (res.status === 401) {
-        location.replace(`/?next=${encodeURIComponent(location.pathname + location.search)}`);
+        location.replace(`./?next=${encodeURIComponent(location.pathname + location.search)}`);
         return;
       }
       const body = await res.json().catch(() => ({}));
