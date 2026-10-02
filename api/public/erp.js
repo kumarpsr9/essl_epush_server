@@ -50,13 +50,14 @@
   -H 'Content-Type: application/json' \\
   -d '{ "students": [
     { "code": "314554",
+      "suc": "2601000058",
       "name": "Ravi Teja Kommana",
       "gender": "Male",
       "campus": "ACET",
       "block": "A Block",
       "room": "101", "bed": "1",
       "phone": "9876543210" },
-    { "code": "324955",
+    { "suc": "2601000071",
       "room": "102", "bed": "" }
   ] }'`;
   }
@@ -217,7 +218,7 @@
       $('main').setAttribute('aria-busy', 'false');
       $('main').innerHTML = `<div class="card-x" style="margin:24px 0"><div class="empty"><i class="bi bi-shield-lock" aria-hidden="true"></i>
         <h4>Only admins can manage ERP sync</h4><p>Ask an admin if student details from the ERP look wrong.</p>
-        <a class="btn-x btn-x--primary" href="/">Go to the movement register</a></div></div>`;
+        <a class="btn-x btn-x--primary" href="/register.html">Go to the movement register</a></div></div>`;
       return;
     }
     load();

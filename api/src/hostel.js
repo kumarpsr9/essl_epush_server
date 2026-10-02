@@ -33,7 +33,7 @@ async function buildHostelDay(date, query, scope = null) {
   const passes = await passesForDay(date, asOf > now ? now : asOf);
 
   const [students] = await pool.query(
-    `SELECT EmployeeCodeInDevice AS UserId, EmployeeCode, EmployeeName, Gender, ContactNo,
+    `SELECT EmployeeCodeInDevice AS UserId, EmployeeCode, EmployeeRFIDNumber AS SUC, EmployeeName, Gender, ContactNo,
             WorkPlace AS Campus, C1 AS Block, C2 AS RoomNo, C3 AS BedNo
      FROM Employees WHERE Status = 'Working' ORDER BY EmployeeName`
   );
@@ -89,7 +89,7 @@ async function buildHostelDay(date, query, scope = null) {
   const known = new Set(students.map((s) => s.UserId));
   // Punches from device users missing in Employees are still reported, not dropped.
   const unknown = [...byStudent.keys()].filter((id) => !known.has(id))
-    .map((UserId) => ({ UserId, EmployeeCode: null, EmployeeName: null, Gender: null, ContactNo: null, Campus: null, Block: null, RoomNo: null, BedNo: null }));
+    .map((UserId) => ({ UserId, EmployeeCode: null, SUC: null, EmployeeName: null, Gender: null, ContactNo: null, Campus: null, Block: null, RoomNo: null, BedNo: null }));
 
   const rows = [...students, ...unknown].map((st) => {
     const { movements = [], ignored = 0 } = byStudent.get(st.UserId) || {};

@@ -18,7 +18,7 @@
   fetch(`/api/outpasses/${encodeURIComponent(id || '')}`, { credentials: 'same-origin' })
     .then(async (res) => {
       if (res.status === 401) {
-        location.replace(`/login.html?next=${encodeURIComponent(location.pathname + location.search)}`);
+        location.replace(`/?next=${encodeURIComponent(location.pathname + location.search)}`);
         return;
       }
       const body = await res.json().catch(() => ({}));
@@ -46,7 +46,7 @@
       <div class="slip-body">
         <div class="who">
           <span class="rg-avatar" aria-hidden="true">${esc((p.name || p.code).slice(0, 2))}</span>
-          <div><h1>${esc(p.name || p.code)}</h1><div class="meta">Roll no. ${esc(p.code)}${room ? ` · ${room}` : ''}</div></div>
+          <div><h1>${esc(p.name || p.code)}</h1><div class="meta">Roll no. ${esc(p.code)}${p.suc ? ` · SUC ${esc(p.suc)}` : ''}${room ? ` · ${room}` : ''}</div></div>
         </div>
         <dl class="window">
           <div><dt>Leaves from</dt><dd>${esc(when(p.outFrom))}</dd></div>

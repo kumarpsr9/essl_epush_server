@@ -7,7 +7,7 @@ window.AppNav = (() => {
   const page = header.dataset.page;
 
   const PAGES = [
-    { id: 'register', href: '/', icon: 'bi-door-open', label: 'Movement register' },
+    { id: 'register', href: '/register.html', icon: 'bi-door-open', label: 'Movement register' },
     { id: 'outpasses', href: '/outpasses.html', icon: 'bi-ticket-perforated', label: 'Outpasses' },
     { id: 'students', href: '/students.html', icon: 'bi-person-vcard', label: 'Students' },
     { id: 'users', href: '/users.html', icon: 'bi-people', label: 'Users', adminOnly: true },
@@ -34,7 +34,7 @@ window.AppNav = (() => {
   }
 
   function toLogin() {
-    location.replace(`/login.html?next=${encodeURIComponent(location.pathname + location.search)}`);
+    location.replace(`/?next=${encodeURIComponent(location.pathname + location.search)}`);
   }
 
   let toastTimer;
@@ -62,7 +62,7 @@ window.AppNav = (() => {
 
     header.innerHTML = `
       <div class="rg-wrap">
-        <a class="rg-brand" href="/">
+        <a class="rg-brand" href="/register.html">
           <i class="bi bi-building" aria-hidden="true"></i>
           <span><b>Aditya Hostels</b><small>Student movement register</small></span>
         </a>
@@ -101,7 +101,7 @@ window.AppNav = (() => {
       if (item.dataset.action === 'logout') {
         item.disabled = true;
         await api('/auth/logout', { method: 'POST' }).catch(() => {});
-        location.replace('/login.html');
+        location.replace('/');
       }
     });
   }

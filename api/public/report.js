@@ -72,7 +72,7 @@
   }
 
   function toLogin() {
-    location.replace(`/login.html?next=${encodeURIComponent(location.pathname + location.search)}`);
+    location.replace(`/?next=${encodeURIComponent(location.pathname + location.search)}`);
   }
 
   class AuthError extends Error {}
@@ -162,7 +162,7 @@
     const sign = dir === 'asc' ? 1 : -1;
     return scopedStudents()
       .filter((s) => matches(s, state.filter))
-      .filter((s) => !q || [s.EmployeeName, s.EmployeeCode, s.UserId, s.Campus, s.Block, s.RoomNo, s.ContactNo].some((v) => v && String(v).toLowerCase().includes(q)))
+      .filter((s) => !q || [s.EmployeeName, s.EmployeeCode, s.UserId, s.SUC, s.Campus, s.Block, s.RoomNo, s.ContactNo].some((v) => v && String(v).toLowerCase().includes(q)))
       .sort((a, b) => {
         const av = a[key] ?? '';
         const bv = b[key] ?? '';
@@ -364,6 +364,7 @@
   function metaLine(s) {
     const parts = [
       `<span>${esc(s.EmployeeCode || s.UserId)}</span>`,
+      s.SUC && `<span title="Student Unique Code">SUC ${esc(s.SUC)}</span>`,
       s.Campus && `<span title="Campus">${esc(s.Campus)}</span>`,
       s.Block && `<span title="Block">${esc(s.Block)}</span>`,
       s.RoomNo && `<span>Room ${esc(s.RoomNo)}</span>`,
@@ -429,6 +430,7 @@
     if (!state.report) return;
     const cols = [
       ['Roll number', (s) => s.EmployeeCode || s.UserId],
+      ['SUC', (s) => s.SUC],
       ['Name', (s) => s.EmployeeName],
       ['Campus', (s) => s.Campus],
       ['Block', (s) => s.Block],

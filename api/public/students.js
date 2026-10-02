@@ -71,7 +71,7 @@
       .filter((s) => state.tab === 'all' || (state.tab === 'needs' ? needsDetails(s) : !s.room))
       .filter((s) => !state.block || (state.block === NONE ? !s.block : s.block === state.block))
       .filter((s) => !state.campus || (state.campus === NONE ? !s.campus : s.campus === state.campus))
-      .filter((s) => !q || [s.name, s.code, s.phone, s.campus, roomKey(s)].some((v) => v && String(v).toLowerCase().includes(q)))
+      .filter((s) => !q || [s.name, s.code, s.suc, s.phone, s.campus, roomKey(s)].some((v) => v && String(v).toLowerCase().includes(q)))
       .sort((a, b) => {
         // Allotted students by block → room → bed, unallotted after them by name.
         if (!!a.room !== !!b.room) return a.room ? -1 : 1;
@@ -118,7 +118,7 @@
       <tr>
         <td class="c-student">
           ${nameMissing(s) ? '<div class="st-name is-missing">Name not added</div>' : `<div class="st-name">${esc(s.name)}</div>`}
-          <div class="st-code">${esc(s.code)}</div>
+          <div class="st-code">${esc(s.code)}${s.suc ? ` · SUC ${esc(s.suc)}` : ''}</div>
         </td>
         <td class="c-campus" data-label="Campus">${s.campus ? `<span class="st-campus">${esc(s.campus)}</span>` : dash}</td>
         <td class="c-gender" data-label="Gender">${esc(s.gender) || dash}</td>
@@ -139,6 +139,7 @@
   const form = dlg.querySelector('form');
   const fields = {
     code: ['fCode', 'fCodeBox', 'fCodeErr'],
+    suc: ['fSuc', 'fSucBox', 'fSucErr'],
     name: ['fName', 'fNameBox', 'fNameErr'],
     phone: ['fPhone', 'fPhoneBox', 'fPhoneErr'],
   };
@@ -192,6 +193,7 @@
 
     if (student) {
       $('roCode').textContent = student.code;
+      $('fSuc').value = student.suc || '';
       $('fName').value = nameMissing(student) ? '' : student.name;
       $('fPhone').value = student.phone || '';
       $('fCampus').value = student.campus || '';
@@ -219,6 +221,7 @@
   function readForm() {
     return {
       code: $('fCode').value.trim(),
+      suc: $('fSuc').value.trim(),
       name: $('fName').value.trim().replace(/\s+/g, ' '),
       gender: form.querySelector('input[name="gender"]:checked')?.value || '',
       phone: $('fPhone').value.trim(),
@@ -236,6 +239,11 @@
     if (!state.editing) {
       if (!/^\d{1,9}$/.test(v.code)) fail('code', 'Enter the roll number: digits only, up to 9');
       else if (state.students.some((s) => s.code === v.code)) fail('code', `Roll number ${v.code} is already added`);
+    }
+    if (v.suc && !/^\d{8,10}$/.test(v.suc)) fail('suc', 'SUC must be 8–10 digits');
+    else if (v.suc) {
+      const other = state.students.find((s) => s.suc === v.suc && s.code !== (state.editing?.code ?? v.code));
+      if (other) fail('suc', `SUC ${v.suc} already belongs to ${nameMissing(other) ? other.code : other.name}`);
     }
     if (!v.name) fail('name', "Enter the student's name");
     if (v.phone && !/^\+?[0-9 -]{10,15}$/.test(v.phone)) fail('phone', 'Phone number must be 10–15 digits');
@@ -280,7 +288,7 @@
       dlg.close();
       render();
     } catch (err) {
-      handle(err, (msg) => (/bed/i.test(msg) ? setRoomErr(msg) : showError(msg)));
+      handle(err, (msg) => (/bed/i.test(msg) ? setRoomErr(msg) : /^SUC/.test(msg) ? setErr('suc', msg) : showError(msg)));
     } finally {
       buttons.forEach((b) => { b.disabled = false; });
       if (e.submitter && label) e.submitter.textContent = label;

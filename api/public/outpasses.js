@@ -59,6 +59,7 @@
 
   const meta = (p) => [
     `<span>${esc(p.code)}</span>`,
+    p.suc && `<span title="Student Unique Code">SUC ${esc(p.suc)}</span>`,
     p.campus && `<span>${esc(p.campus)}</span>`,
     p.block && `<span>${esc(p.block)}</span>`,
     p.room && `<span>Room ${esc(p.room)}</span>`,
@@ -180,7 +181,7 @@
     const q = state.query.trim().toLowerCase();
     return state.passes
       .filter((p) => state.tab !== 'overdue' || p.state === 'overdue')
-      .filter((p) => !q || [p.name, p.code, p.passNo, p.room, p.destination, p.approvedBy].some((v) => v && String(v).toLowerCase().includes(q)));
+      .filter((p) => !q || [p.name, p.code, p.suc, p.passNo, p.room, p.destination, p.approvedBy].some((v) => v && String(v).toLowerCase().includes(q)));
   }
 
   function renderRows() {
@@ -282,7 +283,7 @@
   function search(q) {
     q = q.trim().toLowerCase();
     if (!q || !state.students) return [];
-    return state.students.filter((s) => [s.name, s.code, s.room, s.phone].some((v) => v && String(v).toLowerCase().includes(q))).slice(0, 8);
+    return state.students.filter((s) => [s.name, s.code, s.suc, s.room, s.phone].some((v) => v && String(v).toLowerCase().includes(q))).slice(0, 8);
   }
   function renderPicker() {
     const list = $('pickList');
@@ -293,7 +294,7 @@
     if (!show) return;
     list.innerHTML = matches.length
       ? matches.map((s, i) => `<li role="option" id="opt-${i}" data-i="${i}" aria-selected="${i === active}"><b>${esc(s.name === s.code ? `${s.code} (name not added)` : s.name)}</b>
-          <span>${esc(s.code)}${s.campus ? ` · ${esc(s.campus)}` : ''}${s.block ? ` · ${esc(s.block)}` : ''}${s.room ? ` · Room ${esc(s.room)}` : ''}</span></li>`).join('')
+          <span>${esc(s.code)}${s.suc ? ` · SUC ${esc(s.suc)}` : ''}${s.campus ? ` · ${esc(s.campus)}` : ''}${s.block ? ` · ${esc(s.block)}` : ''}${s.room ? ` · Room ${esc(s.room)}` : ''}</span></li>`).join('')
       : `<li class="none">${state.students ? 'No student matches' : 'Loading students…'}</li>`;
     if (active >= 0) $('pick').setAttribute('aria-activedescendant', `opt-${active}`);
     else $('pick').removeAttribute('aria-activedescendant');

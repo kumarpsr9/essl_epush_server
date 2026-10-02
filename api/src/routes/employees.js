@@ -6,7 +6,7 @@ const { queryLogs } = require('./logs');
 // Never expose LoginPassword / EmployeeDevicePassword.
 const EMPLOYEE_COLUMNS = `EmployeeId, EmployeeName, EmployeeCode, EmployeeCodeInDevice, Gender,
   Designation, DepartmentId, CompanyId, CategoryId, EmployeeRFIDNumber, EmployementType, Status,
-  ContactNo, Email, Location, DOJ, WorkPlace AS Campus, C1 AS Block, C2 AS RoomNo, C3 AS BedNo`;
+  ContactNo, Email, Location, DOJ, EmployeeRFIDNumber AS SUC, WorkPlace AS Campus, C1 AS Block, C2 AS RoomNo, C3 AS BedNo`;
 
 router.get('/', asyncHandler(async (req, res) => {
   const { page, limit, offset } = pagination(req.query);

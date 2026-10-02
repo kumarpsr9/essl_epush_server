@@ -122,7 +122,8 @@ pre.code {
       <div class="card-x-head"><h2 id="formatTitle"><i class="bi bi-braces" aria-hidden="true"></i>What the ERP sends</h2></div>
       <table class="fields">
         <tbody>
-          <tr><td><code>code</code><span class="req">Required</span></td><td>Roll number. Must match the student's user id on the gate device.</td></tr>
+          <tr><td><code>code</code><span class="req">Required to add</span></td><td>Roll number. Must match the student's user id on the gate device.</td></tr>
+          <tr><td><code>suc</code></td><td>Student Unique Code, 8–10 digits. To update a student you can send <code>suc</code> instead of <code>code</code>.<span class="col">Saved in EmployeeRFIDNumber</span></td></tr>
           <tr><td><code>name</code></td><td>Full name. Needed to add a new student.</td></tr>
           <tr><td><code>gender</code></td><td><code>Male</code> or <code>Female</code> (<code>M</code> / <code>F</code> also work). Needed to add a new student.</td></tr>
           <tr><td><code>campus</code></td><td>Where the student studies.<span class="col">Saved in WorkPlace</span></td></tr>

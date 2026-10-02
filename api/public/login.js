@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  const HOME = '/register.html'; // where staff land after signing in
   const $ = (id) => document.getElementById(id);
   const form = $('loginForm');
   const user = $('username');
@@ -11,7 +12,9 @@
   // Only follow same-origin paths after sign-in.
   function nextUrl() {
     const n = new URLSearchParams(location.search).get('next') || '';
-    return n.startsWith('/') && !n.startsWith('//') && !n.startsWith('/\\') ? n : '/';
+    const safe = n.startsWith('/') && !n.startsWith('//') && !n.startsWith('/\\');
+    // "/" is this sign-in page, so never send a signed-in user back to it.
+    return safe && !/^\/(index\.html)?(\?|$)/.test(n) ? n : HOME;
   }
 
   function showError(msg) {

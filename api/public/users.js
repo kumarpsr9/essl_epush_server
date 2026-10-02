@@ -318,7 +318,7 @@
       $('main').setAttribute('aria-busy', 'false');
       $('main').innerHTML = `<div class="card-x" style="margin:24px 0"><div class="empty"><i class="bi bi-shield-lock" aria-hidden="true"></i>
         <h4>Only admins can manage users</h4><p>Ask an admin if you need someone added or a password reset.</p>
-        <a class="btn-x btn-x--primary" href="/">Go to the movement register</a></div></div>`;
+        <a class="btn-x btn-x--primary" href="/register.html">Go to the movement register</a></div></div>`;
       return;
     }
     $('addUser').hidden = false;

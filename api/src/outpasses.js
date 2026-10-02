@@ -23,7 +23,7 @@ const PASS_SELECT = `
          o.ReturnedAt AS returnedAt, o.ReturnDeviceId AS returnDeviceId, o.ReturnSource AS returnSource,
          o.ReturnedBy AS returnedBy, o.ReturnNote AS returnNote, o.Cancelled AS cancelled,
          o.CancelledBy AS cancelledBy, o.CancelledAt AS cancelledAt, o.ExtendedBy AS extendedBy,
-         e.EmployeeName AS name, e.ContactNo AS phone, e.WorkPlace AS campus, e.C1 AS block, e.C2 AS room, e.C3 AS bed
+         e.EmployeeName AS name, e.EmployeeRFIDNumber AS suc, e.ContactNo AS phone, e.WorkPlace AS campus, e.C1 AS block, e.C2 AS room, e.C3 AS bed
   FROM Outpasses o LEFT JOIN Employees e ON e.EmployeeCodeInDevice = o.StudentCode`;
 
 // Derived state at `now`.

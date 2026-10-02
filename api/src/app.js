@@ -18,7 +18,14 @@ app.use('/hooks', express.json({ limit: '5mb' }), webhooks.hooks);
 
 app.use(express.json());
 
-// Static pages hold no data; the register page calls /api with the signed-in session.
+// The sign-in page is the site root (index.html); the register lives at /register.html.
+// Old bookmarks to /login.html still work.
+app.get('/login.html', (req, res) => {
+  const i = req.originalUrl.indexOf('?');
+  res.redirect(301, `/${i >= 0 ? req.originalUrl.slice(i) : ''}`);
+});
+
+// Static pages hold no data; each page calls /api with the signed-in session.
 app.use(express.static(path.join(__dirname, '../public')));
 
 app.get('/health', asyncHandler(async (req, res) => {

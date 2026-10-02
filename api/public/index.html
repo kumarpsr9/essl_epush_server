@@ -3,278 +3,111 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hostel Movement Register</title>
-<meta name="description" content="Day-wise in/out report for Aditya hostel students by gate device.">
+<title>Sign in · Aditya Hostels</title>
+<meta name="description" content="Sign in to the Aditya hostel movement register.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="theme.css">
 <style>
-/* Page header */
-.pg-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; margin: 24px 0 18px; }
-.pg-title { margin: 0; font-size: 24px; font-weight: 800; color: var(--navy); }
-.pg-sub { margin: 4px 0 0; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-.rg-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.rg-date { display: flex; align-items: center; gap: 4px; }
-.rg-controls .inp--sm { width: auto; }
-.rg-controls input[type="date"], .rg-controls input[type="time"] { font-size: 14px; color: var(--navy); }
-.rg-controls .lbl { font-size: 12.5px; font-weight: 700; color: var(--muted); }
-
-/* Attention banner (5.4) */
-.attn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-lg); border: 1px solid var(--line); background: #fff; margin-bottom: 18px; }
-.attn--warn   { background: var(--warn-bg); border-color: #ffe3a3; }
-.attn--good   { background: var(--good-bg); border-color: #c8ebd5; }
-.attn--danger { background: var(--bad-bg);  border-color: #f8c9c9; }
-.attn-icon { flex: none; width: 40px; height: 40px; border-radius: var(--r-md); background: #fff; display: grid; place-items: center; font-size: 19px; color: var(--primary); }
-.attn--warn .attn-icon { color: var(--warn); }
-.attn--good .attn-icon { color: var(--good); }
-.attn--danger .attn-icon { color: var(--bad); }
-.attn h3 { margin: 0; font-size: 15.5px; font-weight: 800; }
-.attn p { margin: 2px 0 0; font-size: 13.5px; color: var(--text); }
-.attn .btn-x { margin-left: auto; }
-
-/* KPI tiles (5.3) */
-.kpis { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 18px; }
-.kpi {
-  --c: var(--primary); --tint: var(--primary-50);
-  display: flex; flex-direction: column; gap: 8px; padding: 16px 18px 14px; background: #fff; text-align: left;
-  border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-1); cursor: pointer;
-  transition: transform var(--t-fast), box-shadow var(--t-fast), border-color var(--t-fast);
+.lg-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 16px; }
+.lg-shell {
+  width: 100%; max-width: 1040px; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden;
+  background: var(--surface); border-radius: 20px; box-shadow: var(--sh-3);
 }
-.kpi:hover { transform: translateY(-2px); border-color: var(--c); box-shadow: 0 12px 26px rgba(1, 41, 112, .10); }
-.kpi[aria-pressed="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c), var(--sh-1); }
-.kpi--warn { --c: var(--warn); --tint: var(--warn-bg); }
-.kpi--good { --c: var(--good); --tint: var(--good-bg); }
-.kpi--teal { --c: var(--teal); --tint: var(--teal-bg); }
-.kpi--bad  { --c: var(--bad); --tint: var(--bad-bg); }
-.kpi--violet { --c: var(--violet); --tint: var(--violet-bg); }
-.kpi-alert { color: var(--bad); font-weight: 700; }
-.kpi-top { display: flex; align-items: center; gap: 10px; }
-.kpi-icon { flex: none; width: 40px; height: 40px; border-radius: var(--r-lg); background: var(--tint); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 19px; }
-.kpi-label { font-size: 13px; font-weight: 700; color: var(--muted); }
-.kpi-value { font: 800 26px/1.1 "Nunito", sans-serif; color: var(--navy); }
-.kpi-note { font-size: 12px; color: var(--muted); }
-.kpi-bar { height: 6px; border-radius: 6px; background: var(--line-soft); overflow: hidden; }
-.kpi-bar > span { display: block; height: 100%; background: var(--c); }
-div.kpi { cursor: default; }
-div.kpi:hover { transform: none; border-color: var(--line); box-shadow: var(--sh-1); }
 
-/* Gates */
-.rg-gates { margin-bottom: 18px; }
-.rg-gate-list { display: grid; gap: 10px; }
-.rg-gate {
-  display: grid; grid-template-columns: minmax(180px, 1.1fr) 2.2fr minmax(150px, .9fr); gap: 18px; align-items: center;
-  width: 100%; padding: 12px 14px; text-align: left; background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); cursor: pointer;
-  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+/* brand panel */
+.lg-brand {
+  position: relative; display: flex; flex-direction: column; gap: 28px; padding: 44px 40px; color: #fff;
+  background: linear-gradient(160deg, #ff7a24, #ff5e1a); overflow: hidden;
 }
-.rg-gate:hover { border-color: var(--primary); box-shadow: var(--sh-2); }
-.rg-gate[aria-pressed="true"] { background: var(--primary-50); border-color: var(--primary); box-shadow: inset 3px 0 0 var(--primary); }
-.rg-gate-name { display: flex; align-items: center; gap: 10px; }
-.rg-gate-name > i { flex: none; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--primary-50); color: var(--primary); display: grid; place-items: center; font-size: 17px; }
-.rg-gate[aria-pressed="true"] .rg-gate-name > i { background: #fff; }
-.rg-gate-name b { display: block; color: var(--navy); font-weight: 700; }
-.rg-gate-name .chip { margin-top: 3px; font-size: 11px; padding: 1px 8px; }
-.split { display: flex; height: 8px; border-radius: 8px; overflow: hidden; background: var(--line-soft); }
-.split .o { background: var(--warn); }
-.split .i { background: var(--good); }
-.split-legend { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12.5px; font-weight: 700; }
-.split-legend .o { color: var(--warn); }
-.split-legend .i { color: var(--good); }
-.rg-gate-punches { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
-.rg-gate-punches b { color: var(--navy); }
-
-/* Students */
-.rg-students { margin-bottom: 40px; padding: 0; overflow: hidden; }
-.rg-students .card-x-head { padding: 18px 18px 0; }
-.rg-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 0 18px 14px; }
-.rg-toolbar .seg { flex: 0 1 auto; }
-.rg-search { margin-left: auto; width: 280px; }
-
-.rg-table { width: 100%; border-collapse: collapse; }
-.rg-table th, .rg-table td { padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
-.rg-table thead th {
-  white-space: nowrap; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
-  background: var(--surface-2); border-top: 1px solid var(--line); border-bottom-color: var(--line);
+.lg-brand::after {
+  content: ""; position: absolute; right: -90px; bottom: -90px; width: 280px; height: 280px; border-radius: 50%;
+  border: 40px solid rgba(255, 255, 255, .10);
 }
-.rg-table th button { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
-.rg-table th button:hover { color: var(--primary); }
-.rg-table th[aria-sort="ascending"] button, .rg-table th[aria-sort="descending"] button { color: var(--primary); }
-.rg-table th[aria-sort="ascending"] button::after { content: "\F148"; font-family: "bootstrap-icons"; font-size: 10px; }
-.rg-table th[aria-sort="descending"] button::after { content: "\F128"; font-family: "bootstrap-icons"; font-size: 10px; }
-.rg-table .num { text-align: right; }
-.rg-table tbody tr:hover > td { background: #fafbff; }
-.rg-table tr.is-open > td { background: var(--primary-50); }
-.rg-name { font-weight: 700; color: var(--navy); }
-/* Roll number · campus · block · room · bed · mobile, under the student's name */
-.rg-meta { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 6px; font-size: 12px; color: var(--muted); }
-.rg-meta > :not(:last-child)::after { content: "·"; margin-left: 6px; color: var(--faint); }
-.rg-tel { color: var(--navy); font-weight: 600; text-decoration: none; }
-.rg-tel:hover { color: var(--primary); text-decoration: underline; }
-.rg-code { font-size: 12px; color: var(--muted); }
-.rg-time { font-weight: 600; color: var(--navy); }
-.rg-table td.c-gate { white-space: nowrap; }
-.rg-pass { display: block; margin-top: 3px; font-size: 11.5px; font-weight: 600; color: var(--muted); text-decoration: none; white-space: nowrap; }
-.rg-pass:hover { color: var(--primary); text-decoration: underline; }
-.dash { color: var(--faint); }
+.lg-mark { display: flex; align-items: center; gap: 12px; font: 800 18px "Nunito", sans-serif; }
+.lg-mark i { width: 44px; height: 44px; border-radius: var(--r-lg); background: rgba(255, 255, 255, .18); display: grid; place-items: center; font-size: 22px; }
+.lg-tagline { margin: 0; font: 800 30px/1.2 "Nunito", sans-serif; color: #fff; max-width: 15ch; }
+.lg-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; font-size: 14.5px; }
+.lg-points li { display: flex; gap: 12px; align-items: flex-start; }
+.lg-points i { flex: none; width: 32px; height: 32px; border-radius: var(--r-md); background: rgba(255, 255, 255, .18); display: grid; place-items: center; font-size: 16px; }
+.lg-points b { display: block; font-weight: 700; }
+.lg-points span { opacity: .9; }
+.lg-legal { margin-top: auto; font-size: 12px; opacity: .85; }
 
-.expand { width: 32px; height: 32px; border: 0; border-radius: var(--r-sm); background: transparent; cursor: pointer; color: var(--faint); display: grid; place-items: center; }
-.expand:hover { background: var(--primary-50); color: var(--primary); }
-.expand i { transition: transform var(--t-fast); }
-.expand[aria-expanded="true"] { color: var(--primary); }
-.expand[aria-expanded="true"] i { transform: rotate(90deg); }
+/* form panel */
+.lg-form-panel { display: flex; flex-direction: column; justify-content: center; padding: 48px 40px; }
+.lg-form-inner { width: 100%; max-width: 370px; margin: 0 auto; }
+.lg-title { margin: 0; font-size: 26px; font-weight: 800; }
+.lg-sub { margin: 6px 0 24px; color: var(--muted); font-size: 14px; }
+.lg-form .alert-x { margin-bottom: 16px; }
+.lg-form .btn-x--lg { margin-top: 22px; }
+.lg-help { margin: 18px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
 
-tr.detail > td { background: var(--surface-2); padding: 14px 16px 16px 64px; }
-.timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.timeline li {
-  display: grid; grid-template-columns: auto auto; column-gap: 8px; align-items: baseline;
-  padding: 8px 12px; border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); border-left-width: 4px;
-}
-.timeline li.OUT { border-left-color: var(--warn); }
-.timeline li.IN { border-left-color: var(--good); }
-.timeline .t { font-weight: 700; color: var(--navy); }
-.timeline .k { font-size: 12.5px; font-weight: 600; }
-.timeline li.OUT .k { color: var(--warn); }
-.timeline li.IN .k { color: var(--good); }
-.timeline .g { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
-.dupes { margin-top: 10px; color: var(--muted); font-size: 12.5px; }
-
-.rg-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 18px; font-size: 12.5px; color: var(--muted); }
-
-/* Skeletons */
-.sk-kpi { height: 112px; border-radius: var(--r-xl); }
-.sk-row { height: 58px; border-radius: var(--r-lg); }
-
-.rg-error { margin-bottom: 18px; }
-.rg-error .btn-x { margin-left: auto; }
-
-@media (max-width: 1199px) {
-  .kpis { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 @media (max-width: 991px) {
-  .rg-gate { grid-template-columns: 1fr 1.6fr; }
-  .rg-gate-punches { grid-column: 1 / -1; }
+  .lg-shell { grid-template-columns: 1fr; max-width: 520px; }
+  .lg-form-panel { order: -1; padding: 36px 28px; }
+  .lg-brand { padding: 28px; gap: 18px; }
+  .lg-tagline { font-size: 22px; max-width: none; }
 }
-@media (max-width: 767px) {
-  .pg-title { font-size: 20px; }
-  .rg-gate { grid-template-columns: 1fr; gap: 10px; }
-  .rg-search { margin-left: 0; width: 100%; }
-  .rg-toolbar .seg { width: 100%; overflow-x: auto; }
-  .attn { align-items: flex-start; }
-
-  /* table -> stacked cards (5.11) */
-  .rg-table thead { display: none; }
-  .rg-table, .rg-table tbody { display: block; }
-  .rg-table tbody { padding: 0 12px 4px; }
-  .rg-table tbody tr {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; padding: 12px;
-    margin-bottom: 10px; border: 1px solid var(--line); border-radius: var(--r-lg); background: #fff;
-  }
-  .rg-table tbody td { display: block; padding: 0; border: 0; background: none !important; }
-  .rg-table td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
-  .rg-table td.c-student { grid-column: 1 / 3; grid-row: 1; }
-  .rg-table td.c-status { grid-column: 3; grid-row: 1; justify-self: end; }
-  .rg-table td.c-status::before { display: none; }
-  .rg-table td.c-expand { grid-column: 1 / -1; grid-row: 4; }
-
-  .rg-table td.c-expand:empty { display: none; }
-  .rg-table td.num { text-align: left; }
-  .rg-table tr.is-open { border-color: var(--primary); }
-  .expand { width: 100%; height: 36px; border: 1px solid var(--line); gap: 6px; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: 600; }
-  .expand .lbl { display: inline; }
-  .rg-table tr.detail { display: block; margin-top: -4px; padding: 12px; background: var(--surface-2); border-color: var(--primary); }
-  .rg-table tr.detail > td { padding: 0; }
-  .rg-table tbody td.empty-cell { grid-column: 1 / -1; }
-  .rg-table tbody tr.empty-row { display: block; border: 0; }
-}
-@media (min-width: 768px) { .expand .lbl { display: none; } }
-@media print {
-  .rg-top .rg-nav, .rg-top .rg-account, .rg-controls, .rg-toolbar, .expand, #exportCsv, .attn .btn-x { display: none !important; }
-  body { background: #fff; }
-  .card-x, .kpi, .rg-gate { box-shadow: none; }
-  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+@media (max-width: 575px) {
+  .lg-page { padding: 0; align-items: stretch; }
+  .lg-shell { border-radius: 0; box-shadow: none; max-width: none; }
+  .lg-form-panel { padding: 32px 16px; }
+  .lg-brand { padding: 24px 16px; }
 }
 </style>
 </head>
 <body>
-<header class="rg-top" id="appNav" data-page="register"></header>
+<main class="lg-page">
+  <div class="lg-shell">
+    <section class="lg-brand" aria-label="About this app">
+      <div class="lg-mark"><i class="bi bi-building" aria-hidden="true"></i>Aditya Hostels</div>
+      <h2 class="lg-tagline">Know who's out, the moment they leave.</h2>
+      <ul class="lg-points">
+        <li><i class="bi bi-door-open" aria-hidden="true"></i><div><b>Live gate register</b><span>Every punch at every hostel gate, updated each minute.</span></div></li>
+        <li><i class="bi bi-clock-history" aria-hidden="true"></i><div><b>Look back any day</b><span>See who was out at any time, with each student's movements.</span></div></li>
+        <li><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i><div><b>Export in one click</b><span>Download the filtered list as a spreadsheet.</span></div></li>
+      </ul>
+      <p class="lg-legal">For authorised hostel staff only. Activity may be logged.</p>
+    </section>
 
-<main class="rg-wrap" id="main" aria-busy="true">
-  <div class="pg-head">
-    <div>
-      <h1 class="pg-title">Movement register</h1>
-      <p class="pg-sub"><span id="dateText"></span><span id="liveState"></span><span id="updated"></span></p>
-    </div>
-    <div class="rg-controls">
-      <div class="rg-date">
-        <button class="btn-x btn-x--ghost btn-x--icon" id="prevDay" type="button" aria-label="Previous day" title="Previous day"><i class="bi bi-chevron-left"></i></button>
-        <label for="date" class="visually-hidden">Date</label>
-        <div class="inp inp--sm"><input type="date" id="date"></div>
-        <button class="btn-x btn-x--ghost btn-x--icon" id="nextDay" type="button" aria-label="Next day" title="Next day"><i class="bi bi-chevron-right"></i></button>
+    <section class="lg-form-panel">
+      <div class="lg-form-inner">
+        <h1 class="lg-title">Sign in</h1>
+        <p class="lg-sub">Use your ePush server login.</p>
+
+        <form class="lg-form" id="loginForm" novalidate>
+          <div class="alert-x" id="formError" role="alert" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+
+          <div class="fld">
+            <label for="username">Username <sup>*</sup></label>
+            <div class="inp" id="userBox">
+              <i class="bi bi-person" aria-hidden="true"></i>
+              <input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="50" placeholder="e.g. warden01" required>
+            </div>
+            <small class="fld-err" id="userErr"></small>
+          </div>
+
+          <div class="fld">
+            <label for="password">Password <sup>*</sup></label>
+            <div class="inp" id="passBox">
+              <i class="bi bi-lock" aria-hidden="true"></i>
+              <input id="password" name="password" type="password" autocomplete="current-password" maxlength="200" placeholder="Your password" required>
+              <button class="inp-btn" type="button" id="togglePass" aria-controls="password" aria-pressed="false">Show</button>
+            </div>
+            <small class="fld-err" id="passErr"></small>
+          </div>
+
+          <button class="btn-x btn-x--primary btn-x--lg" type="submit" id="submitBtn">Sign in</button>
+        </form>
+
+        <p class="lg-help">Forgot your password? Ask the ePush server administrator to reset it.</p>
       </div>
-      <label for="time" class="lbl">As of</label>
-      <div class="inp inp--sm"><input type="time" id="time"></div>
-      <button class="btn-x btn-x--ghost" id="today" type="button">Today</button>
-      <button class="btn-x btn-x--ghost" id="refresh" type="button"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Refresh</button>
-    </div>
+    </section>
   </div>
-
-  <div id="errorBox"></div>
-
-  <section class="attn" id="headlineBox" aria-live="polite" hidden>
-    <span class="attn-icon" id="headlineIcon" aria-hidden="true"></span>
-    <div>
-      <h3 id="headline"></h3>
-      <p id="subline"></p>
-    </div>
-    <button class="btn-x btn-x--ghost" type="button" id="headlineAction" hidden>Show who</button>
-  </section>
-
-  <section class="kpis" id="kpis" aria-label="Totals"></section>
-
-  <section class="card-x rg-gates" aria-labelledby="gatesTitle">
-    <div class="card-x-head">
-      <h2 id="gatesTitle"><i class="bi bi-door-open" aria-hidden="true"></i>Gates</h2>
-      <span class="fld-hint" style="margin:0">Students count at the gate where they last punched. Pick a gate to filter.</span>
-    </div>
-    <div class="rg-gate-list" id="gateList"></div>
-  </section>
-
-  <section class="card-x rg-students" aria-labelledby="studentsTitle">
-    <div class="card-x-head">
-      <h2 id="studentsTitle"><i class="bi bi-people" aria-hidden="true"></i>Students</h2>
-      <button class="btn-x btn-x--ghost" id="exportCsv" type="button"><i class="bi bi-download" aria-hidden="true"></i> Download CSV</button>
-    </div>
-    <div class="rg-toolbar">
-      <div class="seg" role="tablist" aria-label="Filter by status" id="chips"></div>
-      <div class="rg-search">
-        <label for="search" class="visually-hidden">Search students</label>
-        <div class="inp inp--sm"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="search" placeholder="Search name, roll no., campus, room or mobile" autocomplete="off"></div>
-      </div>
-    </div>
-    <table class="rg-table">
-      <thead>
-        <tr>
-          <th style="width:56px"><span class="visually-hidden">Details</span></th>
-          <th data-sort="EmployeeName"><button type="button">Student</button></th>
-          <th data-sort="status"><button type="button">Status</button></th>
-          <th data-sort="firstOut"><button type="button">Went out</button></th>
-          <th data-sort="lastIn"><button type="button">Came back</button></th>
-          <th data-sort="lastPunch"><button type="button">Last punch</button></th>
-          <th data-sort="lastDeviceName"><button type="button">Last gate</button></th>
-          <th data-sort="punchCount" class="num"><button type="button">Punches</button></th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <div class="rg-foot">
-      <span id="rowCount"></span>
-      <span>1st punch of the day is OUT, 2nd is IN, and so on. Repeat scans within <span id="dedup">60</span> seconds are ignored.</span>
-    </div>
-  </section>
 </main>
-
-<script src="nav.js"></script>
-<script src="report.js"></script>
+<script src="login.js"></script>
 </body>
 </html>

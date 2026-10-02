@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const express = require('express');
 const { pool } = require('../db');
 const { HttpError, asyncHandler } = require('../util');
-const { saveStudent } = require('../students');
+const { saveStudent, findBySuc } = require('../students');
 const { publicBaseUrl } = require('../config');
 
 const MAX_RECORDS = 2000;
@@ -13,7 +13,8 @@ const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 // ---------- public hook: POST /hooks/students ----------
 // Called by the external ERP with `Authorization: Bearer <key>` (or `X-Webhook-Key`).
 // Body: { "students": [ {...}, ... ] }, a bare array, or one student object.
-// Each record is matched on `code` and added or updated; only fields that are present change.
+// Each record is matched on `code` (roll number = device user id), or on `suc` when `code` is
+// left out; it is added or updated, and only fields that are present change.
 const hooks = express.Router();
 
 async function keyFor(req) {
@@ -66,12 +67,20 @@ hooks.post('/students', asyncHandler(async (req, res) => {
   for (const [index, rec] of records.entries()) {
     try {
       if (!rec || typeof rec !== 'object' || Array.isArray(rec)) throw new HttpError(400, 'Each student must be a JSON object');
-      const { action } = await saveStudent({ code: rec.code, input: rec, actor, mode: 'upsert', partial: true });
+      let { code } = rec;
+      if (code === undefined || code === null || code === '') {
+        const suc = String(rec.suc ?? '').trim();
+        if (!suc) throw new HttpError(400, 'Send the roll number (code) or SUC');
+        const found = await findBySuc(suc);
+        if (!found) throw new HttpError(404, `No student has SUC ${suc}. Send code to add a new student`);
+        code = found.code;
+      }
+      const { action } = await saveStudent({ code, input: rec, actor, mode: 'upsert', partial: true });
       result[action] += 1;
     } catch (err) {
       if (!err.status || err.status >= 500) console.error(err);
       result.failed += 1;
-      result.errors.push({ index, code: rec?.code ?? null, error: err.status && err.status < 500 ? err.message : 'Internal error' });
+      result.errors.push({ index, code: rec?.code ?? rec?.suc ?? null, error: err.status && err.status < 500 ? err.message : 'Internal error' });
     }
   }
 

@@ -72,14 +72,14 @@ router.get('/:id', asyncHandler(async (req, res) => {
   res.json({ data: await findPass(req.params.id) });
 }));
 
-// POST /api/outpasses { code, type, reason, destination, approvedBy, outFrom, returnBy }
+// POST /api/outpasses { code (roll number or SUC), type, reason, destination, approvedBy, outFrom, returnBy }
 // approvedBy: who allowed the student to go (parent, HOD, chief warden…), separate from the issuing user.
 router.post('/', asyncHandler(async (req, res) => {
   const b = req.body || {};
   const code = String(b.code || '').trim();
   const [[student]] = await pool.query(
-    "SELECT EmployeeCodeInDevice AS code, EmployeeName AS name FROM Employees WHERE (EmployeeCode = ? OR EmployeeCodeInDevice = ?) AND Status = 'Working' LIMIT 1",
-    [code, code]
+    "SELECT EmployeeCodeInDevice AS code, EmployeeName AS name FROM Employees WHERE (EmployeeCode = ? OR EmployeeCodeInDevice = ? OR EmployeeRFIDNumber = ?) AND Status = 'Working' LIMIT 1",
+    [code, code, code]
   );
   if (!student) throw new HttpError(404, 'Pick a student from the list');
   const type = String(b.type || '');

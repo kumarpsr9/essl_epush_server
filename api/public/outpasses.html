@@ -160,7 +160,7 @@
   <section class="attn" id="checkBox" aria-live="polite" hidden>
     <span class="attn-icon" id="checkIcon" aria-hidden="true"></span>
     <div><h3 id="checkTitle"></h3><p id="checkText"></p></div>
-    <a class="btn-x btn-x--ghost" id="checkLink" href="/?status=NOPASS" hidden>See who's out</a>
+    <a class="btn-x btn-x--ghost" id="checkLink" href="/register.html?status=NOPASS" hidden>See who's out</a>
   </section>
 
   <section class="kpis" id="kpis" aria-label="Outpasses now"></section>
@@ -180,7 +180,7 @@
       </div>
       <div class="op-search">
         <label for="search" class="visually-hidden">Search outpasses</label>
-        <div class="inp inp--sm"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="search" placeholder="Search name, roll no. or pass no." autocomplete="off"></div>
+        <div class="inp inp--sm"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="search" placeholder="Search name, roll no., SUC or pass no." autocomplete="off"></div>
       </div>
     </div>
     <table class="op-table">
@@ -205,7 +205,7 @@
         <label for="pick">Student <sup>*</sup></label>
         <div class="picker">
           <div class="inp" id="pickBox"><i class="bi bi-search" aria-hidden="true"></i>
-            <input id="pick" role="combobox" aria-expanded="false" aria-controls="pickList" aria-autocomplete="list" autocomplete="off" placeholder="Type a name, roll number or room"></div>
+            <input id="pick" role="combobox" aria-expanded="false" aria-controls="pickList" aria-autocomplete="list" autocomplete="off" placeholder="Type a name, roll number, SUC or room"></div>
           <ul class="picker-list" id="pickList" role="listbox" hidden></ul>
         </div>
         <small class="fld-err" id="pickErr"></small>

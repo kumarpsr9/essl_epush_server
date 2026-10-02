@@ -2,12 +2,13 @@ const { pool } = require('./db');
 const { HttpError } = require('./util');
 
 // Hostel students live in the ePush Employees table. Hostel details use spare columns:
-// WorkPlace = campus the student studies at, C1 = block, C2 = room number, C3 = bed number.
+// WorkPlace = campus the student studies at, C1 = block, C2 = room number, C3 = bed number,
+// EmployeeRFIDNumber = SUC (Student Unique Code, the college-wide student id, 8–10 digits).
 // EmployeeCode always equals EmployeeCodeInDevice: it is the user id enrolled on the gate
 // device, so it can't change after the student is added.
 
 const STUDENT_SELECT = `
-  SELECT EmployeeId AS id, EmployeeCode AS code, EmployeeName AS name, Gender AS gender,
+  SELECT EmployeeId AS id, EmployeeCode AS code, EmployeeRFIDNumber AS suc, EmployeeName AS name, Gender AS gender,
          ContactNo AS phone, WorkPlace AS campus, C1 AS block, C2 AS room, C3 AS bed,
          Status AS status, LastModifiedBy AS updatedBy
   FROM Employees`;
@@ -15,6 +16,7 @@ const STUDENT_SELECT = `
 // field -> [column, label, max length]
 const FIELDS = {
   name: ['EmployeeName', 'student name', 50],
+  suc: ['EmployeeRFIDNumber', 'SUC', 10],
   gender: ['Gender', 'gender', 10],
   phone: ['ContactNo', 'phone number', 15],
   campus: ['WorkPlace', 'campus', 100],
@@ -26,6 +28,7 @@ const REQUIRED = ['name', 'gender'];
 
 const CODE_RE = /^\d{1,9}$/;
 const PHONE_RE = /^\+?[0-9 -]{10,15}$/;
+const SUC_RE = /^\d{8,10}$/;
 
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
 
@@ -53,9 +56,15 @@ function parseFields(input, { partial }) {
     if (v.length > max) throw new HttpError(400, `${cap(label)} must be ${max} characters or fewer`);
     if (key === 'gender') v = parseGender(v);
     if (key === 'phone' && v && !PHONE_RE.test(v)) throw new HttpError(400, 'Phone number must be 10–15 digits');
+    if (key === 'suc' && v && !SUC_RE.test(v)) throw new HttpError(400, 'SUC must be 8–10 digits');
     out[key] = v;
   }
   return out;
+}
+
+async function findBySuc(suc) {
+  const [rows] = await pool.query(`${STUDENT_SELECT} WHERE EmployeeRFIDNumber = ? LIMIT 1`, [suc]);
+  return rows[0] || null;
 }
 
 async function findStudent(code) {
@@ -108,6 +117,10 @@ async function saveStudent({ code: rawCode, input, actor, mode, partial = false 
   const changed = Object.keys(fields).filter((k) => (before[k] ?? '') !== (fields[k] ?? ''));
   if (existing && !changed.length) return { action: 'unchanged', student: existing };
   if (['block', 'room', 'bed'].some((k) => changed.includes(k)) || !existing) await assertBedFree(merged, code);
+  if (changed.includes('suc') && merged.suc) {
+    const other = await findBySuc(merged.suc);
+    if (other && other.code !== code) throw new HttpError(409, `SUC ${merged.suc} already belongs to ${other.name} (${other.code})`);
+  }
 
   if (existing) {
     const sets = changed.map((k) => `${FIELDS[k][0]} = ?`);
@@ -119,10 +132,10 @@ async function saveStudent({ code: rawCode, input, actor, mode, partial = false 
     // Defaults match the rows the ePush server creates when a gate device reports a new user.
     await pool.query(
       `INSERT INTO Employees (EmployeeName, EmployeeCode, StringCode, NumericCode, Gender, CompanyId, DepartmentId,
-         Designation, CategoryId, DOJ, EmployeeCodeInDevice, EmployementType, Status, ContactNo, Location,
+         Designation, CategoryId, DOJ, EmployeeCodeInDevice, EmployeeRFIDNumber, EmployementType, Status, ContactNo, Location,
          RecordStatus, WorkPlace, C1, C2, C3, LastModifiedBy)
-       VALUES (?, ?, '', ?, ?, 1, 1, '', 1, '1900-01-01 00:00:00', ?, 'Permanent', 'Working', ?, '', 1, ?, ?, ?, ?, ?)`,
-      [merged.name, code, Number(code), merged.gender, code, nullable(merged.phone), nullable(merged.campus),
+       VALUES (?, ?, '', ?, ?, 1, 1, '', 1, '1900-01-01 00:00:00', ?, ?, 'Permanent', 'Working', ?, '', 1, ?, ?, ?, ?, ?)`,
+      [merged.name, code, Number(code), merged.gender, code, nullable(merged.suc), nullable(merged.phone), nullable(merged.campus),
         nullable(merged.block), nullable(merged.room), nullable(merged.bed), actor]
     );
   }
@@ -134,4 +147,4 @@ async function listStudents() {
   return rows;
 }
 
-module.exports = { saveStudent, listStudents, parseCode };
+module.exports = { saveStudent, listStudents, parseCode, findBySuc };

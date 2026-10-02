@@ -129,7 +129,7 @@
       </div>
       <div class="st-search">
         <label for="search" class="visually-hidden">Search students</label>
-        <div class="inp inp--sm"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="search" placeholder="Search name, roll no., campus or room" autocomplete="off"></div>
+        <div class="inp inp--sm"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="search" placeholder="Search name, roll no., SUC or room" autocomplete="off"></div>
       </div>
     </div>
     <table class="st-table">
@@ -167,16 +167,24 @@
           <small class="fld-hint">Fixed. It's their user id on the gate device.</small>
         </div>
         <div class="fld">
+          <label for="fSuc">SUC</label>
+          <div class="inp" id="fSucBox"><i class="bi bi-person-badge" aria-hidden="true"></i><input id="fSuc" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="e.g. 2601000058"></div>
+          <small class="fld-err" id="fSucErr"></small>
+          <small class="fld-hint">Student Unique Code from the college ERP, 8–10 digits.</small>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="fld">
+          <label for="fName">Full name <sup>*</sup></label>
+          <div class="inp" id="fNameBox"><i class="bi bi-person" aria-hidden="true"></i><input id="fName" maxlength="50" autocomplete="off" placeholder="As on the college ID card"></div>
+          <small class="fld-err" id="fNameErr"></small>
+        </div>
+        <div class="fld">
           <label for="fPhone">Phone</label>
           <div class="inp" id="fPhoneBox"><i class="bi bi-telephone" aria-hidden="true"></i><input id="fPhone" type="tel" inputmode="tel" maxlength="15" autocomplete="off" placeholder="10-digit mobile"></div>
           <small class="fld-err" id="fPhoneErr"></small>
         </div>
-      </div>
-
-      <div class="fld">
-        <label for="fName">Full name <sup>*</sup></label>
-        <div class="inp" id="fNameBox"><i class="bi bi-person" aria-hidden="true"></i><input id="fName" maxlength="50" autocomplete="off" placeholder="As on the college ID card"></div>
-        <small class="fld-err" id="fNameErr"></small>
       </div>
 
       <div class="grid-2">
