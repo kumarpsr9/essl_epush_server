@@ -59,7 +59,9 @@ button, input, select { font: inherit; color: inherit; }
 a { color: var(--primary); }
 :focus-visible { outline: 3px solid rgba(65, 84, 241, .45); outline-offset: 2px; border-radius: 6px; }
 [hidden] { display: none !important; }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Keeps visually-hidden labels inside scrolling tables from widening the page */
+th { position: relative; }
 
 /* App shell: top bar + nav (shared by every signed-in page) */
 .rg-wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
@@ -110,14 +112,42 @@ a { color: var(--primary); }
 .rg-menu button > i { font-size: 16px; color: var(--faint); }
 .rg-menu button:hover > i { color: var(--primary); }
 
-@media (max-width: 767px) {
-  .rg-wrap { padding: 0 16px; }
+.rg-nav .short { display: none; }
+
+/* Tablets and landscape phones: links move to their own row under the brand. */
+@media (max-width: 1099px) {
   .rg-top .rg-wrap { flex-wrap: wrap; min-height: 0; padding-top: 10px; }
   .rg-brand { margin-right: auto; }
-  .rg-brand small, .rg-user-text, .rg-account-btn > .bi-chevron-down { display: none; }
-  .rg-nav { order: 3; flex-basis: 100%; margin: 0 -8px; overflow-x: auto; }
+  .rg-nav { order: 3; flex-basis: 100%; margin: 0 -12px; overflow-x: auto; scrollbar-width: none; }
   .rg-nav a { min-height: 44px; }
 }
+
+/* Phones: links become a bottom tab bar (DESIGN.md principle 7). */
+@media (max-width: 767px) {
+  .rg-wrap { padding: 0 16px; }
+  /* backdrop-filter would make the header the containing block of the fixed tab bar */
+  .rg-top { backdrop-filter: none; background: #fff; }
+  .rg-top .rg-wrap { min-height: 56px; padding-top: 0; }
+  .rg-brand small, .rg-user-text, .rg-account-btn > .bi-chevron-down { display: none; }
+  body:has(.rg-nav) { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  .rg-nav {
+    position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; margin: 0;
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; overflow: visible;
+    padding-bottom: env(safe-area-inset-bottom, 0px); background: #fff; border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 16px rgba(1, 41, 112, .06);
+  }
+  .rg-nav a { flex-direction: column; justify-content: center; gap: 2px; min-height: 60px; padding: 6px 2px; font-size: 11px; }
+  .rg-nav a > i { font-size: 20px; }
+  .rg-nav a[aria-current="page"]::after { top: -1px; bottom: auto; left: 22%; right: 22%; border-radius: 0 0 3px 3px; }
+  .rg-nav .full { display: none; }
+  .rg-nav .short { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 32px); }
+
+  /* Segmented tabs wrap instead of running off the card */
+  .seg { flex-wrap: wrap; max-width: 100%; }
+  .seg button { flex: 1 1 auto; }
+}
+@media print { .rg-nav { display: none !important; } }
 
 /* Dialog */
 .dlg {

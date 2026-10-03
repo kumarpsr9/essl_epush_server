@@ -7,11 +7,12 @@ window.AppNav = (() => {
   const page = header.dataset.page;
 
   const PAGES = [
-    { id: 'register', href: 'register.html', icon: 'bi-door-open', label: 'Movement register' },
-    { id: 'outpasses', href: 'outpasses.html', icon: 'bi-ticket-perforated', label: 'Outpasses' },
-    { id: 'students', href: 'students.html', icon: 'bi-person-vcard', label: 'Students' },
-    { id: 'users', href: 'users.html', icon: 'bi-people', label: 'Users', adminOnly: true },
-    { id: 'erp', href: 'erp.html', icon: 'bi-plug', label: 'ERP sync', adminOnly: true },
+    // `short` is the label in the phone bottom bar.
+    { id: 'register', href: 'register.html', icon: 'bi-door-open', label: 'Movement register', short: 'Register' },
+    { id: 'outpasses', href: 'outpasses.html', icon: 'bi-ticket-perforated', label: 'Outpasses', short: 'Outpasses' },
+    { id: 'students', href: 'students.html', icon: 'bi-person-vcard', label: 'Students', short: 'Students' },
+    { id: 'users', href: 'users.html', icon: 'bi-people', label: 'Users', short: 'Users', adminOnly: true },
+    { id: 'erp', href: 'erp.html', icon: 'bi-plug', label: 'ERP sync', short: 'ERP', adminOnly: true },
   ];
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -55,7 +56,7 @@ window.AppNav = (() => {
 
   function render(user) {
     const links = PAGES.filter((p) => !p.adminOnly || user.isAdmin).map((p) => `
-      <a href="${p.href}"${p.id === page ? ' aria-current="page"' : ''}><i class="bi ${p.icon}" aria-hidden="true"></i>${p.label}</a>`).join('');
+      <a href="${p.href}"${p.id === page ? ' aria-current="page"' : ''}><i class="bi ${p.icon}" aria-hidden="true"></i><span class="full">${p.label}</span><span class="short">${p.short}</span></a>`).join('');
     const scope = user.isAdmin
       ? 'Sees every gate'
       : `Sees ${user.deviceIds.length} ${user.deviceIds.length === 1 ? 'gate' : 'gates'}`;

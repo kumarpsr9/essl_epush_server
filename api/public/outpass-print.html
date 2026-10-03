@@ -19,7 +19,10 @@ body { padding: 24px 16px 40px; }
 .slip-head small { color: var(--muted); font-size: 12px; }
 .slip-kind { margin-left: auto; text-align: right; }
 .slip-kind .t { display: block; font: 800 13px "Nunito", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--navy); }
-.slip-kind .no { font: 700 15px ui-monospace, "SF Mono", Menlo, monospace; color: var(--navy); }
+.slip-kind .no { font: 700 15px ui-monospace, "SF Mono", Menlo, monospace; color: var(--navy); white-space: nowrap; }
+.slip-head > div:not(.slip-kind) { min-width: 0; }
+.who > div { min-width: 0; }
+.who h1 { overflow-wrap: anywhere; }
 .slip-body { padding: 16px 20px 6px; }
 .who { display: flex; align-items: center; gap: 12px; }
 .who .rg-avatar { width: 44px; height: 44px; font-size: 16px; }
@@ -38,6 +41,19 @@ body { padding: 24px 16px 40px; }
 .signs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px 20px; padding: 26px 20px 18px; border-top: 1px dashed var(--line); }
 .signs div { border-top: 1px solid var(--text); padding-top: 4px; font-size: 11.5px; color: var(--muted); }
 .foot { padding: 0 20px 14px; font-size: 11px; color: var(--muted); }
+@media (max-width: 479px) {
+  body { padding: 12px 12px 32px; }
+  .bar .btn-x { min-height: 44px; }
+  .bar .btn-x--primary { flex: 1; }
+  .slip-head { padding: 14px 16px; }
+  .slip-head > i { display: none; }
+  .slip-body { padding: 14px 16px 4px; }
+  .window { grid-template-columns: 1fr; gap: 10px; }
+  .window .arrow { display: none; }
+  .window .back { text-align: left; }
+  .signs { padding: 22px 16px 16px; gap: 24px 14px; }
+  .foot { padding: 0 16px 14px; }
+}
 @media print {
   @page { size: A5; margin: 10mm; }
   body { padding: 0; background: #fff; }

@@ -101,7 +101,8 @@
 .picker-list .none { cursor: default; color: var(--muted); font-size: 13px; }
 .picked { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-lg); background: var(--primary-50); border: 1.5px solid #d6dcff; }
 .picked .rg-avatar { width: 36px; height: 36px; font-size: 13px; }
-.picked b { display: block; color: var(--navy); }
+.picked > div { min-width: 0; }
+.picked b { display: block; color: var(--navy); overflow-wrap: anywhere; }
 .picked .op-meta { font-size: 12px; }
 .picked .btn-x { margin-left: auto; min-height: 32px; padding: 4px 10px; font-size: 12.5px; }
 .student-note { margin-top: 8px; }
@@ -119,12 +120,8 @@
 @media (max-width: 1199px) {
   .kpis { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 767px) {
-  .pg-title { font-size: 20px; }
-  .attn { align-items: flex-start; flex-wrap: wrap; }
-  .attn .btn-x { margin-left: 0; }
-  .op-search { margin-left: 0; width: 100%; }
-  .op-toolbar .seg { width: 100%; }
+/* Table -> stacked cards: below 992px the five columns squeeze the actions into a narrow stack. */
+@media (max-width: 991px) {
   .op-table thead { display: none; }
   .op-table, .op-table tbody { display: block; }
   .op-table tbody { padding: 0 12px 4px; }
@@ -136,6 +133,20 @@
   .op-actions { justify-content: flex-start; }
   .op-actions .btn-x { flex: 1 1 auto; min-height: 40px; }
   .op-table tbody tr.empty-row { display: block; border: 0; }
+}
+@media (min-width: 600px) and (max-width: 991px) {
+  .op-actions .btn-x { flex: 0 1 auto; }
+}
+@media (max-width: 767px) {
+  .pg-title { font-size: 20px; }
+  .pg-head > .btn-x { width: 100%; min-height: 44px; }
+  .attn { align-items: flex-start; flex-wrap: wrap; }
+  .attn > div { flex: 1 1 calc(100% - 52px); min-width: 0; }
+  .attn .btn-x { margin-left: 52px; }
+  .op-dates { flex-wrap: wrap; width: 100%; }
+  .op-dates .inp { flex: 1 1 120px; }
+  .op-search { margin-left: 0; width: 100%; }
+  .op-toolbar .seg { width: 100%; }
 }
 @media (max-width: 459px) {
   .grid-2 { grid-template-columns: 1fr; }
