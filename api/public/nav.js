@@ -9,7 +9,8 @@ window.AppNav = (() => {
   const PAGES = [
     // `short` is the label in the phone bottom bar.
     { id: 'register', href: 'register.html', icon: 'bi-door-open', label: 'Movement register', short: 'Register' },
-    { id: 'outpasses', href: 'outpasses.html', icon: 'bi-ticket-perforated', label: 'Outpasses', short: 'Outpasses' },
+    { id: 'scan', href: 'scan.html', icon: 'bi-qr-code-scan', label: 'Scan pass', short: 'Scan' },
+    { id: 'outpasses', href: 'outpasses.html', icon: 'bi-ticket-perforated', label: 'Outpasses', short: 'Passes' },
     { id: 'students', href: 'students.html', icon: 'bi-person-vcard', label: 'Students', short: 'Students' },
     { id: 'users', href: 'users.html', icon: 'bi-people', label: 'Users', short: 'Users', adminOnly: true },
     { id: 'erp', href: 'erp.html', icon: 'bi-plug', label: 'ERP sync', short: 'ERP', adminOnly: true },
@@ -30,7 +31,7 @@ window.AppNav = (() => {
     if (res.status === 401) throw new AuthError('Session expired');
     if (res.status === 204) return null;
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
+    if (!res.ok) throw Object.assign(new Error(body.error || `Request failed (${res.status})`), { status: res.status });
     return body;
   }
 

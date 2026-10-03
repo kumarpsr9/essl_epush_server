@@ -1,8 +1,10 @@
+const crypto = require('crypto');
+const QRCode = require('qrcode');
 const router = require('express').Router();
 const { pool } = require('../db');
 const { HttpError, asyncHandler, nowIST, today } = require('../util');
 const {
-  PASS_SELECT, decorate, syncOutpasses, lastPunchToday, addMin, LEAVE_EARLY_MIN,
+  PASS_SELECT, decorate, syncOutpasses, lastPunchToday, scanVerdict, addMin, LEAVE_EARLY_MIN,
 } = require('../outpasses');
 
 // Admins and wardens can issue and manage outpasses.
@@ -67,9 +69,91 @@ router.get('/', asyncHandler(async (req, res) => {
   });
 }));
 
+// The slip's QR code holds md5("<passNo>,<suc>") so the gate can check a printed pass.
+const qrCode = (p) => crypto.createHash('md5').update(`${p.passNo},${p.suc || ''}`).digest('hex');
+
+// ---------- gate scanning ----------
+// Security scans the slip's QR (or types the pass number) when a student goes out and
+// again when they come back. The server decides the one thing that may happen next, so
+// two guards, or a guard and the student's own device punch, can't record it twice.
+
+const QR_RE = /^[0-9a-f]{32}$/i;
+const QR_LOOKBACK_DAYS = 60; // the QR is matched by hash, so only recent passes are searched
+
+async function findByCode(raw) {
+  const code = String(raw || '').trim();
+  if (!code) throw new HttpError(400, 'Scan a QR code or type a pass number');
+  const [rows] = QR_RE.test(code)
+    ? await pool.query(
+      `${PASS_SELECT} WHERE o.IssuedAt >= DATE_SUB(?, INTERVAL ${QR_LOOKBACK_DAYS} DAY)
+         AND MD5(CONCAT(o.PassNo, ',', COALESCE(e.EmployeeRFIDNumber, ''))) = ? ORDER BY o.Id DESC LIMIT 1`,
+      [nowIST(), code.toLowerCase()]
+    )
+    : await pool.query(`${PASS_SELECT} WHERE o.PassNo = ? LIMIT 1`, [code.toUpperCase().replace(/\s+/g, '')]);
+  if (!rows.length) {
+    throw new HttpError(404, QR_RE.test(code)
+      ? "This QR code doesn't match any outpass. If the student's SUC changed after printing, type the pass number instead"
+      : `No outpass numbered ${code}`);
+  }
+  return decorate(rows[0]);
+}
+
+const scanResult = (p, now = nowIST()) => ({ data: p, scan: scanVerdict(p, now), now });
+
+// The gate the guard is standing at, if any; wardens may only use their own gates.
+async function scanGate(req) {
+  const raw = req.body?.deviceId;
+  if (raw === undefined || raw === null || raw === '') return null;
+  const id = Number(raw);
+  const scope = req.user.deviceIds;
+  if (!Number.isInteger(id) || (scope && !scope.includes(id))) throw new HttpError(403, "You can't record scans at that gate");
+  const [[d]] = await pool.query('SELECT DeviceId FROM Devices WHERE DeviceId = ?', [id]);
+  if (!d) throw new HttpError(400, 'Unknown gate');
+  return id;
+}
+
+// GET /api/outpasses/scan?code=<QR code or pass number>
+router.get('/scan', asyncHandler(async (req, res) => {
+  await syncOutpasses(); // a punch the student already made decides what the scan may do
+  res.json(scanResult(await findByCode(req.query.code)));
+}));
+
+// POST /api/outpasses/:id/scan { action: 'depart'|'return', deviceId? }
+router.post('/:id/scan', asyncHandler(async (req, res) => {
+  const action = req.body?.action;
+  if (action !== 'depart' && action !== 'return') throw new HttpError(400, 'action must be depart or return');
+  const gate = await scanGate(req);
+  await syncOutpasses();
+  const p = await findPass(req.params.id);
+  const now = nowIST();
+  const verdict = scanVerdict(p, now);
+  if (verdict.next !== action) throw new HttpError(409, `${verdict.title}. ${verdict.detail}`);
+
+  const [r] = action === 'depart'
+    ? await pool.query(
+      `UPDATE Outpasses SET DepartedAt = ?, DepartDeviceId = ?, DepartSource = 'scan', DepartedBy = ?
+       WHERE Id = ? AND Cancelled = 0 AND DepartedAt IS NULL AND ReturnedAt IS NULL`,
+      [now, gate, req.user.name, p.id]
+    )
+    : await pool.query(
+      `UPDATE Outpasses SET ReturnedAt = ?, ReturnDeviceId = ?, ReturnSource = 'scan', ReturnedBy = ?
+       WHERE Id = ? AND Cancelled = 0 AND DepartedAt IS NOT NULL AND ReturnedAt IS NULL`,
+      [now, gate, req.user.name, p.id]
+    );
+  if (!r.affectedRows) throw new HttpError(409, 'Someone else recorded this pass a moment ago. Scan it again to see where it stands');
+  res.json({ ...scanResult(await findPass(p.id), now), recorded: action });
+}));
+
 router.get('/:id', asyncHandler(async (req, res) => {
   await syncOutpasses();
-  res.json({ data: await findPass(req.params.id) });
+  const p = await findPass(req.params.id);
+  res.json({ data: { ...p, qrCode: qrCode(p) } });
+}));
+
+router.get('/:id/qr.svg', asyncHandler(async (req, res) => {
+  const p = await findPass(req.params.id);
+  const svg = await QRCode.toString(qrCode(p), { type: 'svg', errorCorrectionLevel: 'M', margin: 2, color: { dark: '#012970', light: '#ffffff' } });
+  res.type('image/svg+xml').set('Cache-Control', 'private, no-store').send(svg);
 }));
 
 // POST /api/outpasses { code (roll number or SUC), type, reason, destination, approvedBy, outFrom, returnBy }
@@ -141,7 +225,8 @@ router.post('/:id/return', asyncHandler(async (req, res) => {
   const note = String(req.body?.note || '').trim().slice(0, 255);
   await pool.query(
     `UPDATE Outpasses SET ReturnedAt = ?, ReturnSource = 'manual', ReturnedBy = ?, ReturnNote = ?,
-       DepartedAt = COALESCE(DepartedAt, ?) WHERE Id = ? AND ReturnedAt IS NULL`,
+       DepartSource = IF(DepartedAt IS NULL, 'manual', DepartSource), DepartedAt = COALESCE(DepartedAt, ?)
+     WHERE Id = ? AND ReturnedAt IS NULL`,
     [at, req.user.name, note || null, p.outFrom < at ? p.outFrom : at, p.id]
   );
   res.json({ data: await findPass(p.id) });

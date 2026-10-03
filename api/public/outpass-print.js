@@ -61,6 +61,10 @@
           <div><dt>Mobile</dt><dd>${esc(p.phone || '—')}</dd></div>
           <div class="wide"><dt>Issued by</dt><dd>${esc(p.issuedBy)}, ${esc(when(p.issuedAt))}</dd></div>
         </dl>
+        <div class="qr">
+          <img src="api/outpasses/${encodeURIComponent(p.id)}/qr.svg" width="116" height="116" alt="QR code for outpass ${esc(p.passNo)}">
+          <div><b>Show at the gate</b><span>Security scans this when you go out and when you come back.</span><code>${esc(p.qrCode)}</code></div>
+        </div>
       </div>
       <div class="signs"><div>Student</div><div>Warden</div><div>Security, going out</div><div>Security, coming back</div></div>
       <div class="foot">Punch at the gate when leaving and when coming back. Report to the warden if you'll be late.</div>`;

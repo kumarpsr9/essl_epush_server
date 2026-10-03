@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan outpass · Aditya Hostels</title>
+<meta name="description" content="Scan a student's outpass at the gate when they go out and when they come back.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+.sc { max-width: 560px; margin: 0 auto; padding-bottom: 40px; }
+.pg-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; margin: 20px 0 14px; }
+.pg-title { margin: 0; font-size: 24px; font-weight: 800; color: var(--navy); }
+.sc-gate { display: flex; align-items: center; gap: 8px; }
+.sc-gate label { font-size: 12.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.sc-gate select { height: 38px; max-width: 220px; padding: 0 28px 0 10px; border: 1.5px solid #dfe4ee; border-radius: var(--r-md); background: #fff; color: var(--navy); font-size: 14px; font-weight: 600; }
+
+/* Viewfinder */
+.cam { position: relative; aspect-ratio: 1; width: 100%; border-radius: var(--r-2xl); overflow: hidden; background: var(--navy); }
+.cam video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cam-frame { position: absolute; inset: 16%; pointer-events: none; }
+.cam-frame span { position: absolute; width: 30%; height: 30%; border: 0 solid #fff; }
+.cam-frame span:nth-child(1) { top: 0; left: 0; border-width: 4px 0 0 4px; border-top-left-radius: 18px; }
+.cam-frame span:nth-child(2) { top: 0; right: 0; border-width: 4px 4px 0 0; border-top-right-radius: 18px; }
+.cam-frame span:nth-child(3) { bottom: 0; left: 0; border-width: 0 0 4px 4px; border-bottom-left-radius: 18px; }
+.cam-frame span:nth-child(4) { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-bottom-right-radius: 18px; }
+.cam-hint { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; color: #fff; font-size: 13.5px; font-weight: 600; text-shadow: 0 1px 4px rgba(0, 0, 0, .5); }
+.cam-idle { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; color: #dbe4ff; }
+.cam-idle > i { font-size: 48px; color: #fff; }
+.cam-idle p { margin: 0; max-width: 34ch; font-size: 13.5px; }
+.cam-idle .btn-x--lg { width: auto; padding: 0 22px; box-shadow: none; }
+
+.sc-alt { display: flex; gap: 8px; margin-top: 12px; }
+.sc-alt form { flex: 1; display: flex; gap: 8px; min-width: 0; }
+.sc-alt .inp { flex: 1; min-width: 0; height: 44px; }
+.sc-alt .btn-x { min-height: 44px; }
+
+/* Result */
+#result { scroll-margin-top: 76px; }
+.res { border-radius: var(--r-2xl); overflow: hidden; background: #fff; border: 1px solid var(--line); box-shadow: var(--sh-2); }
+.res-band { --c: var(--primary); --bg: var(--primary-50); display: flex; gap: 14px; align-items: flex-start; padding: 18px; background: var(--bg); border-bottom: 1px solid var(--line-soft); }
+.res-band > i { flex: none; width: 52px; height: 52px; border-radius: 14px; background: var(--c); color: #fff; display: grid; place-items: center; font-size: 26px; }
+.res-band h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--c); line-height: 1.2; }
+.res-band p { margin: 4px 0 0; font-size: 14px; color: var(--text); }
+.res-band.go   { --c: var(--good); --bg: var(--good-bg); }
+.res-band.back { --c: var(--primary); --bg: var(--primary-50); }
+.res-band.wait { --c: var(--warn); --bg: var(--warn-bg); }
+.res-band.stop { --c: var(--bad); --bg: var(--bad-bg); }
+.res-body { padding: 16px 18px 4px; }
+.who { display: flex; gap: 12px; align-items: center; }
+.who .rg-avatar { width: 48px; height: 48px; font-size: 17px; }
+.who > div { min-width: 0; }
+.who b { display: block; font: 800 18px/1.25 "Nunito", sans-serif; color: var(--navy); overflow-wrap: anywhere; }
+.who > div > span { display: block; font-size: 12.5px; color: var(--muted); }
+.res-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin: 14px 0; }
+.res-facts dt { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.res-facts dd { margin: 1px 0 0; font-size: 13.5px; font-weight: 600; color: var(--navy); overflow-wrap: anywhere; }
+.res-facts .wide { grid-column: 1 / -1; }
+.res-no { font: 700 13px ui-monospace, "SF Mono", Menlo, monospace; }
+.res-foot { display: flex; flex-direction: column; gap: 8px; padding: 4px 18px 18px; }
+.res-foot .btn-x { min-height: 48px; font-size: 15px; font-weight: 700; }
+.btn-x--go { background: var(--good); color: #fff; }
+.btn-x--go:hover:not(:disabled) { background: #116331; }
+.res-next { text-align: center; font-size: 12.5px; color: var(--muted); }
+
+/* Recent */
+.recent { margin-top: 18px; padding: 0; overflow: hidden; }
+.recent .card-x-head { padding: 16px 18px 0; margin-bottom: 8px; }
+.recent ol { list-style: none; margin: 0; padding: 0 0 6px; }
+.recent li { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 18px; border-top: 1px solid var(--line-soft); }
+.recent .t { font-weight: 700; color: var(--navy); }
+.recent .n { min-width: 0; }
+.recent .n b { display: block; color: var(--navy); font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent .n span { font-size: 12px; color: var(--muted); }
+.recent li.empty { display: block; padding: 20px 18px 24px; text-align: left; }
+.recent .empty p { font-size: 13px; }
+
+@media (max-width: 575px) {
+  .pg-title { font-size: 20px; }
+  .pg-head { margin-top: 14px; }
+  .sc-gate { width: 100%; }
+  .sc-gate select { flex: 1; max-width: none; }
+  .cam { border-radius: var(--r-xl); }
+}
+</style>
+</head>
+<body>
+<header class="rg-top" id="appNav" data-page="scan"></header>
+
+<main class="rg-wrap" id="main">
+  <div class="sc">
+    <div class="pg-head">
+      <h1 class="pg-title">Scan outpass</h1>
+      <div class="sc-gate">
+        <label for="gate">Scanning at</label>
+        <select id="gate"><option value="">Loading gates…</option></select>
+      </div>
+    </div>
+
+    <div id="errorBox"></div>
+
+    <section id="scanner" aria-label="Scanner">
+      <div class="cam">
+        <video id="video" playsinline muted hidden></video>
+        <div class="cam-frame" id="frame" hidden><span></span><span></span><span></span><span></span></div>
+        <div class="cam-hint" id="camHint" hidden>Hold the QR code inside the frame</div>
+        <div class="cam-idle" id="camIdle">
+          <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
+          <p id="camIdleText">Scan the QR code on the student's outpass when they go out and when they come back.</p>
+          <button class="btn-x btn-x--primary btn-x--lg" type="button" id="startCam"><i class="bi bi-camera" aria-hidden="true"></i> Start camera</button>
+        </div>
+      </div>
+      <div class="sc-alt">
+        <form id="manualForm" autocomplete="off">
+          <label for="manual" class="visually-hidden">Pass number or QR code</label>
+          <div class="inp inp--sm"><i class="bi bi-keyboard" aria-hidden="true"></i><input id="manual" placeholder="Type pass number" autocapitalize="characters" spellcheck="false" enterkeyhint="go"></div>
+          <button class="btn-x btn-x--ghost" type="submit">Check</button>
+        </form>
+        <label class="btn-x btn-x--ghost btn-x--icon" style="width:44px" title="Take a photo of the QR code">
+          <i class="bi bi-image" aria-hidden="true"></i><span class="visually-hidden">Take a photo of the QR code</span>
+          <input type="file" id="photo" accept="image/*" capture="environment" hidden>
+        </label>
+      </div>
+    </section>
+
+    <section id="result" aria-live="assertive" hidden></section>
+
+    <section class="card-x recent" aria-labelledby="recentTitle">
+      <div class="card-x-head"><h2 id="recentTitle"><i class="bi bi-clock-history" aria-hidden="true"></i>Recorded on this phone today</h2></div>
+      <ol id="recent"></ol>
+    </section>
+  </div>
+</main>
+
+<script src="nav.js"></script>
+<script src="scan.js"></script>
+</body>
+</html>

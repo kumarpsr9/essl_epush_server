@@ -1,6 +1,7 @@
 const { pool, logTablesFor } = require('./db');
 const { HttpError, today, nowIST } = require('./util');
-const { syncOutpasses, passesForDay } = require('./outpasses');
+const { syncOutpasses, passesForDay, SCAN_MATCH_MIN } = require('./outpasses');
+const { buildDay } = require('./movements');
 
 const DEFAULT_DEDUP_SEC = Number(process.env.HOSTEL_DEDUP_SEC || 60);
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
@@ -19,7 +20,8 @@ function parseOptions(query) {
 // the 1st punch is OUT of the hostel, the 2nd is back IN, 3rd OUT, and so on. The exception
 // is a student away overnight on an outpass: they start the day OUT, so their 1st punch is IN.
 // Repeat scans within `dedupSeconds` of the last counted punch are ignored so a
-// double-scan does not flip the student's status.
+// double-scan does not flip the student's status. Outpass QR scans and warden returns
+// have a known direction and are merged in by movements.js.
 //
 // `scope` (a warden's DeviceIds, null for admins) limits the report to those gates: the
 // roster becomes students who punched at one of them that day. Direction still counts
@@ -48,42 +50,27 @@ async function buildHostelDay(date, query, scope = null) {
     [punches] = await pool.query(`${sql} ORDER BY UserId, LogDate`, tables.flatMap(() => [date, asOf]));
   }
 
-  // A warden marking a student "reported back" counts as an IN movement, so the
-  // register agrees with the outpass even though there was no gate punch.
+  // QR scans at the gate and wardens marking a student back carry a known direction; they
+  // are merged with the punches so the register agrees with the outpass (see movements.js).
   const events = punches.map((p) => ({ ...p }));
   for (const [code, pass] of passes) {
-    for (const r of pass.manualReturns) events.push({ UserId: code, LogDate: r.time, manual: r });
+    for (const e of pass.explicit) events.push({ UserId: code, LogDate: e.time, explicit: e });
   }
   events.sort((a, b) => (a.UserId === b.UserId ? (a.LogDate < b.LogDate ? -1 : a.LogDate > b.LogDate ? 1 : 0) : a.UserId < b.UserId ? -1 : 1));
 
+  const grouped = new Map();
+  for (const e of events) {
+    if (!grouped.has(e.UserId)) grouped.set(e.UserId, []);
+    grouped.get(e.UserId).push(e);
+  }
   const byStudent = new Map();
-  for (const p of events) {
-    if (!byStudent.has(p.UserId)) byStudent.set(p.UserId, { movements: [], ignored: 0 });
-    const s = byStudent.get(p.UserId);
-    const last = s.movements[s.movements.length - 1];
-    if (p.manual) {
-      // Only meaningful if they were out; otherwise the next punch already brought them in.
-      if (last ? last.type === 'OUT' : passes.get(p.UserId)?.awayAtStart) {
-        s.movements.push({
-          seq: s.movements.length + 1, type: 'IN', time: p.LogDate, deviceId: null,
-          deviceName: `Reported to ${p.manual.by} (${p.manual.passNo})`, manual: true,
-        });
-      }
-      continue;
-    }
-    if (last && !last.manual && (Date.parse(p.LogDate) - Date.parse(last.time)) / 1000 <= dedupSeconds) {
-      s.ignored += 1;
-      continue;
-    }
-    const startsOut = passes.get(p.UserId)?.awayAtStart;
-    const type = last ? (last.type === 'OUT' ? 'IN' : 'OUT') : startsOut ? 'IN' : 'OUT';
-    s.movements.push({
-      seq: s.movements.length + 1,
-      type,
-      time: p.LogDate,
-      deviceId: p.DeviceId,
-      deviceName: deviceName.get(p.DeviceId) || `Device ${p.DeviceId}`,
-    });
+  for (const [code, list] of grouped) {
+    byStudent.set(code, buildDay(list, {
+      startsOut: !!passes.get(code)?.awayAtStart,
+      dedupSeconds,
+      matchSeconds: SCAN_MATCH_MIN * 60,
+      deviceName: (id) => deviceName.get(id) || `Device ${id}`,
+    }));
   }
 
   const known = new Set(students.map((s) => s.UserId));
@@ -96,7 +83,7 @@ async function buildHostelDay(date, query, scope = null) {
     const last = movements[movements.length - 1];
     const outs = movements.filter((m) => m.type === 'OUT');
     const ins = movements.filter((m) => m.type === 'IN');
-    const gateMoves = movements.filter((m) => !m.manual);
+    const gateMoves = movements.filter((m) => m.source === 'gate');
     const pass = passes.get(st.UserId);
     return {
       ...st,
@@ -104,7 +91,8 @@ async function buildHostelDay(date, query, scope = null) {
       status: last ? last.type : pass?.awayAtStart ? 'OUT' : 'IN',
       awayOvernight: !!pass?.awayAtStart,
       outpass: pass?.cover || null,
-      hasPunches: gateMoves.length > 0,
+      // A scan without a punch still places the student, so it counts as activity here.
+      hasPunches: movements.length > 0,
       punchCount: gateMoves.length,
       ignoredDuplicates: ignored,
       firstOut: outs[0]?.time || null,

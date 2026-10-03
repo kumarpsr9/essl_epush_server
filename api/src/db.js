@@ -67,7 +67,8 @@ async function ensureSchema() {
     UNIQUE KEY UK_TokenHash (TokenHash)
   ) DEFAULT CHARSET=utf8`);
   // Outpasses. All times are IST wall-clock, like DeviceLogs.LogDate. DepartedAt / ReturnedAt
-  // are filled from gate punches (or by a warden for ReturnedAt).
+  // are filled from gate punches, QR scans at the gate, or (ReturnedAt only) by a warden.
+  // ReturnSource: gate, scan or manual.
   await pool.query(`CREATE TABLE IF NOT EXISTS Outpasses (
     Id int(11) NOT NULL AUTO_INCREMENT,
     PassNo varchar(20) DEFAULT NULL,
@@ -82,6 +83,8 @@ async function ensureSchema() {
     IssuedAt datetime NOT NULL,
     DepartedAt datetime DEFAULT NULL,
     DepartDeviceId int(11) DEFAULT NULL,
+    DepartSource varchar(10) DEFAULT NULL,
+    DepartedBy varchar(50) DEFAULT NULL,
     ReturnedAt datetime DEFAULT NULL,
     ReturnDeviceId int(11) DEFAULT NULL,
     ReturnSource varchar(10) DEFAULT NULL,
@@ -97,6 +100,9 @@ async function ensureSchema() {
     KEY IX_OutFrom (OutFrom)
   ) DEFAULT CHARSET=utf8`);
   await addColumnIfMissing('Outpasses', 'ApprovedBy', 'varchar(100) DEFAULT NULL AFTER Destination');
+  // How the exit was recorded: gate (device punch), scan (QR at the gate) or manual. NULL on older rows means gate.
+  await addColumnIfMissing('Outpasses', 'DepartSource', 'varchar(10) DEFAULT NULL AFTER DepartDeviceId');
+  await addColumnIfMissing('Outpasses', 'DepartedBy', 'varchar(50) DEFAULT NULL AFTER DepartSource');
   await pool.query(`CREATE TABLE IF NOT EXISTS WebhookLog (
     Id int(11) NOT NULL AUTO_INCREMENT,
     At datetime NOT NULL,

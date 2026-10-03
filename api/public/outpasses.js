@@ -146,18 +146,20 @@
     ].join('');
   }
 
+  const leftBy = (p) => (p.departSource === 'scan' ? `, scanned by ${esc(p.departedBy)}` : '');
+
   function stateCell(p) {
     const late = p.lateMinutes ? ` · ${duration(p.lateMinutes)} late` : '';
     switch (p.state) {
       case 'issued':
         return `<span class="chip chip--muted"><i class="bi bi-hourglass" aria-hidden="true"></i> Not left yet</span><span class="sub">Issued by ${esc(p.issuedBy)}</span>`;
       case 'out':
-        return `<span class="chip chip--warn"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Out</span><span class="sub">Left ${whenText(p.departedAt)}</span>`;
+        return `<span class="chip chip--warn"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Out</span><span class="sub">Left ${whenText(p.departedAt)}${leftBy(p)}</span>`;
       case 'overdue':
-        return `<span class="chip chip--bad"><i class="bi bi-alarm" aria-hidden="true"></i> Overdue ${duration(p.lateMinutes)}</span><span class="sub">Left ${whenText(p.departedAt)}</span>`;
+        return `<span class="chip chip--bad"><i class="bi bi-alarm" aria-hidden="true"></i> Overdue ${duration(p.lateMinutes)}</span><span class="sub">Left ${whenText(p.departedAt)}${leftBy(p)}</span>`;
       case 'returned':
         return `<span class="chip ${p.lateMinutes ? 'chip--warn' : 'chip--good'}"><i class="bi bi-box-arrow-in-left" aria-hidden="true"></i> Back ${whenText(p.returnedAt)}</span>
-          <span class="sub">${p.returnSource === 'manual' ? `Marked by ${esc(p.returnedBy)}` : 'Gate punch'}${late}${p.returnNote ? ` · ${esc(p.returnNote)}` : ''}</span>`;
+          <span class="sub">${p.returnSource === 'manual' ? `Marked by ${esc(p.returnedBy)}` : p.returnSource === 'scan' ? `Scanned by ${esc(p.returnedBy)}` : 'Gate punch'}${late}${p.returnNote ? ` · ${esc(p.returnNote)}` : ''}</span>`;
       case 'cancelled':
         return `<span class="chip chip--muted"><i class="bi bi-x-circle" aria-hidden="true"></i> Cancelled</span><span class="sub">By ${esc(p.cancelledBy)}</span>`;
       default:
