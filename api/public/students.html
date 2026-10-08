@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Students · Aditya Hostels</title>
+<meta name="description" content="Add hostel students and keep their names, rooms and beds up to date.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+.pg-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; margin: 24px 0 18px; }
+.pg-title { margin: 0; font-size: 24px; font-weight: 800; color: var(--navy); }
+.pg-sub { margin: 4px 0 0; font-size: 14px; color: var(--muted); max-width: 64ch; }
+
+.attn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-lg); margin-bottom: 18px; background: var(--warn-bg); border: 1px solid #ffe3a3; }
+.attn-icon { flex: none; width: 40px; height: 40px; border-radius: var(--r-md); background: #fff; color: var(--warn); display: grid; place-items: center; font-size: 19px; }
+.attn h3 { margin: 0; font-size: 15.5px; font-weight: 800; }
+.attn p { margin: 2px 0 0; font-size: 13.5px; }
+.attn .btn-x { margin-left: auto; }
+
+.st-card { padding: 0; overflow: hidden; margin-bottom: 40px; }
+.st-card .card-x-head { padding: 18px 18px 0; }
+.st-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 0 18px 14px; }
+.st-block { display: flex; align-items: center; gap: 8px; }
+.st-block label { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.st-block select { height: 38px; padding: 0 30px 0 10px; border: 1.5px solid #dfe4ee; border-radius: var(--r-md); background: #fff; color: var(--navy); font-size: 14px; }
+.st-search { margin-left: auto; width: 280px; }
+.st-campus { font-size: 13px; color: var(--text); }
+
+.st-table { width: 100%; border-collapse: collapse; }
+.st-table th, .st-table td { padding: 11px 16px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.st-table thead th {
+  font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  background: var(--surface-2); border-top: 1px solid var(--line); border-bottom-color: var(--line);
+}
+.st-table tbody tr:hover > td { background: #fafbff; }
+.st-name { font-weight: 700; color: var(--navy); }
+.st-name.is-missing { font-weight: 600; font-style: italic; color: var(--warn); }
+.st-code { font-size: 12px; color: var(--muted); }
+.st-room { font-weight: 600; color: var(--navy); }
+.dash { color: var(--faint); }
+.st-table td.c-edit { text-align: right; }
+.st-table td.c-edit .btn-x { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+.st-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 18px; font-size: 12.5px; color: var(--muted); }
+
+/* Student form */
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.grid-3 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0 12px; }
+.dlg-body .fld, .dlg-body .grid-2, .dlg-body .grid-3, .dlg-body .seg-fld { margin-top: 16px; }
+.dlg-body > :first-child, .dlg-body > .alert-x + * { margin-top: 0; }
+.dlg-body .grid-2 > .fld, .dlg-body .grid-3 > .fld { margin-top: 0; }
+.seg-fld legend { margin-bottom: 6px; padding: 0; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.seg-fld { border: 0; padding: 0; margin-inline: 0; }
+.seg label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border-radius: 9px; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.seg input { position: absolute; opacity: 0; }
+.seg label:has(input:checked) { background: #fff; color: var(--primary); box-shadow: 0 2px 8px rgba(1, 41, 112, .10); }
+.seg label:has(input:focus-visible) { box-shadow: var(--ring); }
+.ro { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 12px; border-radius: var(--r-lg); background: var(--surface-2); border: 1.5px dashed #dfe4ee; color: var(--navy); font-weight: 700; }
+.ro i { color: var(--faint); }
+.section-label { display: flex; align-items: center; gap: 6px; margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line-soft); font: 800 14px "Nunito", sans-serif; color: var(--navy); }
+.section-label i { color: var(--primary); }
+.dlg-foot .grow { margin-right: auto; align-self: center; font-size: 12.5px; color: var(--muted); }
+
+@media (max-width: 767px) {
+  .pg-title { font-size: 20px; }
+  .st-search { margin-left: 0; width: 100%; }
+  .st-toolbar .seg { width: 100%; }
+  .pg-head > .btn-x { width: 100%; min-height: 44px; }
+  .st-block { flex: 1 1 140px; }
+  .st-block select { flex: 1; min-width: 0; }
+  .attn { align-items: flex-start; flex-wrap: wrap; }
+  .attn > div { flex: 1 1 calc(100% - 52px); min-width: 0; }
+  .attn .btn-x { margin-left: 52px; }
+  .st-table thead { display: none; }
+  .st-table, .st-table tbody { display: block; }
+  .st-table tbody { padding: 0 12px 4px; }
+  .st-table tbody tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .st-table tbody td { display: block; padding: 0; border: 0; background: none !important; }
+  .st-table td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 600; color: var(--muted); }
+  .st-table td.c-student { grid-column: 1 / 3; }
+  .st-table td.c-gender { grid-column: 3; text-align: right; }
+  .st-table td.c-gender::before { display: none; }
+  .st-table td.c-phone, .st-table td.c-campus { grid-column: 1 / -1; }
+  .st-table td.c-edit { grid-column: 1 / -1; text-align: left; }
+  .st-table td.c-edit .btn-x { width: 100%; min-height: 40px; }
+  .st-table tbody td.empty-cell { grid-column: 1 / -1; }
+  .st-table tbody tr.empty-row { display: block; border: 0; }
+}
+@media (max-width: 459px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .dlg-body .grid-2 > .fld + .fld, .dlg-body .grid-3 > .fld + .fld { margin-top: 16px; }
+  .dlg-foot .grow { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="rg-top" id="appNav" data-page="students"></header>
+
+<main class="rg-wrap" id="main" aria-busy="true">
+  <div class="pg-head">
+    <div>
+      <h1 class="pg-title">Students</h1>
+      <p class="pg-sub">Names, rooms and beds shown in the movement register. The roll number is the student's user id on the gate device.</p>
+    </div>
+    <button class="btn-x btn-x--primary" type="button" id="addStudent"><i class="bi bi-person-plus" aria-hidden="true"></i> Add student</button>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <section class="attn" id="needsBox" hidden>
+    <span class="attn-icon" aria-hidden="true"><i class="bi bi-pencil-square"></i></span>
+    <div><h3 id="needsTitle"></h3><p>The gate device added them with only a roll number. Add a name and room so wardens can recognise them in the register.</p></div>
+    <button class="btn-x btn-x--ghost" type="button" id="startFill">Fill in details</button>
+  </section>
+
+  <section class="card-x st-card" aria-labelledby="listTitle">
+    <div class="card-x-head">
+      <h2 id="listTitle"><i class="bi bi-person-vcard" aria-hidden="true"></i>Hostel students</h2>
+      <span class="chip" id="total"></span>
+    </div>
+    <div class="st-toolbar">
+      <div class="seg" role="tablist" aria-label="Filter students" id="tabs"></div>
+      <div class="st-block">
+        <label for="campusFilter">Campus</label>
+        <select id="campusFilter"></select>
+      </div>
+      <div class="st-block">
+        <label for="blockFilter">Block</label>
+        <select id="blockFilter"></select>
+      </div>
+      <div class="st-search">
+        <label for="search" class="visually-hidden">Search students</label>
+        <div class="inp inp--sm"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="search" placeholder="Search name, roll no., SUC or room" autocomplete="off"></div>
+      </div>
+    </div>
+    <table class="st-table">
+      <thead>
+        <tr><th>Student</th><th>Campus</th><th>Gender</th><th>Block</th><th>Room</th><th>Bed</th><th>Phone</th><th><span class="visually-hidden">Edit</span></th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="st-foot"><span id="rowCount"></span><button class="btn-x btn-x--ghost" type="button" id="more" hidden>Show more</button></div>
+  </section>
+</main>
+
+<datalist id="blockList"></datalist>
+<datalist id="campusList"></datalist>
+
+<dialog class="dlg" id="studentDialog" aria-labelledby="stDlgTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head">
+      <div><h2 id="stDlgTitle">Add student</h2><p id="stDlgSub"></p></div>
+      <button class="btn-x btn-x--ghost btn-x--icon dlg-x" type="button" data-close aria-label="Close" title="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body">
+      <div class="alert-x" role="alert" id="stError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+
+      <div class="grid-2">
+        <div class="fld" id="codeFld">
+          <label for="fCode">Roll number <sup>*</sup></label>
+          <div class="inp" id="fCodeBox"><i class="bi bi-upc" aria-hidden="true"></i><input id="fCode" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="e.g. 314554"></div>
+          <small class="fld-err" id="fCodeErr"></small>
+          <small class="fld-hint">Same as their user id on the gate device.</small>
+        </div>
+        <div class="fld" id="codeRo" hidden>
+          <span style="display:block;margin-bottom:6px;font-size:13.5px;font-weight:700">Roll number</span>
+          <div class="ro"><i class="bi bi-lock" aria-hidden="true"></i><span id="roCode"></span></div>
+          <small class="fld-hint">Fixed. It's their user id on the gate device.</small>
+        </div>
+        <div class="fld">
+          <label for="fSuc">SUC</label>
+          <div class="inp" id="fSucBox"><i class="bi bi-person-badge" aria-hidden="true"></i><input id="fSuc" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="e.g. 2601000058"></div>
+          <small class="fld-err" id="fSucErr"></small>
+          <small class="fld-hint">Student Unique Code from the college ERP, 8–10 digits.</small>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="fld">
+          <label for="fName">Full name <sup>*</sup></label>
+          <div class="inp" id="fNameBox"><i class="bi bi-person" aria-hidden="true"></i><input id="fName" maxlength="50" autocomplete="off" placeholder="As on the college ID card"></div>
+          <small class="fld-err" id="fNameErr"></small>
+        </div>
+        <div class="fld">
+          <label for="fPhone">Phone</label>
+          <div class="inp" id="fPhoneBox"><i class="bi bi-telephone" aria-hidden="true"></i><input id="fPhone" type="tel" inputmode="tel" maxlength="15" autocomplete="off" placeholder="10-digit mobile"></div>
+          <small class="fld-err" id="fPhoneErr"></small>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <fieldset class="seg-fld" style="margin-top:0">
+          <legend>Gender <sup style="color:var(--bad)">*</sup></legend>
+          <div class="seg">
+            <label><input type="radio" name="gender" value="Male">Male</label>
+            <label><input type="radio" name="gender" value="Female">Female</label>
+          </div>
+        </fieldset>
+        <div class="fld">
+          <label for="fCampus">Campus</label>
+          <div class="inp" id="fCampusBox"><i class="bi bi-mortarboard" aria-hidden="true"></i><input id="fCampus" list="campusList" maxlength="100" autocomplete="off" placeholder="Where they study"></div>
+        </div>
+      </div>
+
+      <h3 class="section-label"><i class="bi bi-door-closed" aria-hidden="true"></i>Room allocation</h3>
+      <div class="grid-3">
+        <div class="fld">
+          <label for="fBlock">Block</label>
+          <div class="inp" id="fBlockBox"><input id="fBlock" list="blockList" maxlength="50" autocomplete="off" placeholder="e.g. A Block"></div>
+        </div>
+        <div class="fld">
+          <label for="fRoom">Room</label>
+          <div class="inp" id="fRoomBox"><input id="fRoom" maxlength="20" autocomplete="off" placeholder="101"></div>
+        </div>
+        <div class="fld">
+          <label for="fBed">Bed</label>
+          <div class="inp" id="fBedBox"><input id="fBed" maxlength="10" autocomplete="off" placeholder="2"></div>
+        </div>
+      </div>
+      <small class="fld-err" id="fRoomErr"></small>
+      <small class="fld-hint">Leave blank if not allotted yet. A bed can be given to one student only.</small>
+    </div>
+    <div class="dlg-foot">
+      <span class="grow" id="stProgress"></span>
+      <button class="btn-x btn-x--ghost" type="button" data-close>Cancel</button>
+      <button class="btn-x btn-x--soft" type="submit" value="next" id="stSaveNext" hidden>Save and next</button>
+      <button class="btn-x btn-x--primary" type="submit" value="save" id="stSave">Add student</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="nav.js"></script>
+<script src="students.js"></script>
+</body>
+</html>

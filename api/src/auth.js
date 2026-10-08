@@ -34,12 +34,34 @@ async function findUser(loginName) {
   return rows[0] || null;
 }
 
+// Two roles: admins see every gate and manage users; wardens see only the gates mapped to them.
+// Accounts created in ePush itself (IsAdmin = 1) count as admins.
+const roleOf = (u) => (u.IsAdmin ? 'admin' : 'warden');
+
 const publicUser = (u) => ({
   id: u.UserId,
   name: u.LoginName,
-  role: u.RoleName || (u.IsAdmin ? 'Administrator' : 'User'),
-  isAdmin: !!u.IsAdmin,
+  role: roleOf(u),
+  isAdmin: roleOf(u) === 'admin',
 });
+
+async function deviceIdsFor(loginName) {
+  const [rows] = await pool.query('SELECT DeviceId FROM UserDevices WHERE LoginName = ? ORDER BY DeviceId', [loginName]);
+  return rows.map((r) => r.DeviceId);
+}
+
+// deviceIds is null for admins (every gate) and a list of DeviceIds for wardens.
+async function sessionProfile(user) {
+  const profile = publicUser(user);
+  profile.deviceIds = profile.isAdmin ? null : await deviceIdsFor(user.LoginName);
+  return profile;
+}
+
+const validatePassword = (pw) => {
+  if (typeof pw !== 'string' || pw.length < 8) throw new HttpError(400, 'Password must be at least 8 characters');
+  if (pw.length > 200) throw new HttpError(400, 'Password must be 200 characters or fewer');
+  return pw;
+};
 
 // ---------- signed session token: base64url(payload).hmac ----------
 function issueToken(user) {
@@ -139,17 +161,44 @@ router.post('/logout', (req, res) => {
 router.get('/me', asyncHandler(async (req, res) => {
   const user = await sessionUser(req);
   if (!user) throw new HttpError(401, 'Not signed in');
-  res.json({ user: publicUser(user) });
+  res.json({ user: await sessionProfile(user) });
+}));
+
+// Any signed-in user can change their own password; the session is re-issued so they stay signed in.
+router.post('/password', asyncHandler(async (req, res) => {
+  const user = await sessionUser(req);
+  if (!user) throw new HttpError(401, 'Not signed in');
+  const current = String(req.body?.currentPassword || '');
+  const next = validatePassword(req.body?.newPassword);
+
+  const key = failureKey(req, user.LoginName);
+  checkThrottle(key);
+  if (!passwordMatches(user.LoginPassword, current)) {
+    recordFailure(key);
+    throw new HttpError(400, 'Current password is incorrect');
+  }
+  await pool.query('UPDATE Users SET LoginPassword = ? WHERE LoginName = ?', [md5(next), user.LoginName]);
+  setSessionCookie(req, res, issueToken({ ...user, LoginPassword: md5(next) }), sessionHours * 3600);
+  res.status(204).end();
 }));
 
 // Accepts a signed-in session, or the x-api-key header for scripts and integrations.
+// API-key callers get admin scope.
 const requireAuth = asyncHandler(async (req, res, next) => {
   const key = req.get('x-api-key');
-  if (key && apiKey && safeEqual(key, apiKey)) return next();
+  if (key && apiKey && safeEqual(key, apiKey)) {
+    req.user = { id: null, name: 'api-key', role: 'admin', isAdmin: true, deviceIds: null };
+    return next();
+  }
   const user = await sessionUser(req);
   if (!user) throw new HttpError(401, 'Sign in required');
-  req.user = publicUser(user);
+  req.user = await sessionProfile(user);
   next();
 });
 
-module.exports = { router, requireAuth };
+const requireAdmin = (req, res, next) => {
+  if (!req.user?.isAdmin) return next(new HttpError(403, 'Only admins can do this'));
+  next();
+};
+
+module.exports = { router, requireAuth, requireAdmin, hashPassword: md5, validatePassword };

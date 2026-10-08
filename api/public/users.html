@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Users · Aditya Hostels</title>
+<meta name="description" content="Add admins and wardens and choose which gates each warden sees.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+.pg-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; margin: 24px 0 18px; }
+.pg-title { margin: 0; font-size: 24px; font-weight: 800; color: var(--navy); }
+.pg-sub { margin: 4px 0 0; font-size: 14px; color: var(--muted); max-width: 62ch; }
+
+.us-card { padding: 0; overflow: hidden; margin-bottom: 40px; }
+.us-card .card-x-head { padding: 18px 18px 0; }
+.us-tabs { padding: 0 18px 14px; }
+.us-tabs .seg { display: inline-flex; }
+
+.us-table { width: 100%; border-collapse: collapse; }
+.us-table th, .us-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.us-table thead th {
+  font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  background: var(--surface-2); border-top: 1px solid var(--line); border-bottom-color: var(--line);
+}
+.us-table tbody tr:hover > td { background: #fafbff; }
+.us-who { display: flex; align-items: center; gap: 10px; }
+.us-who .rg-avatar { width: 34px; height: 34px; font-size: 13px; }
+.us-who b { color: var(--navy); }
+.us-who .chip { margin-left: 6px; font-size: 10.5px; padding: 1px 8px; }
+.us-gates { display: flex; flex-wrap: wrap; gap: 6px; }
+.us-gates .chip { font-weight: 600; }
+.us-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.us-actions .btn-x { min-height: 34px; padding: 6px 11px; font-size: 13px; }
+.btn-x--quiet { background: none; color: var(--bad); }
+.btn-x--quiet:hover:not(:disabled) { background: var(--bad-bg); }
+.us-foot { padding: 12px 18px; font-size: 12.5px; color: var(--muted); }
+
+/* Role picker: two described options */
+.role-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border: 0; margin: 0; padding: 0; }
+.role-pick legend, .gate-pick legend { margin-bottom: 6px; padding: 0; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.role-opt { position: relative; display: flex; gap: 10px; padding: 12px; border: 1.5px solid #dfe4ee; border-radius: var(--r-lg); cursor: pointer; transition: border-color var(--t-fast), background var(--t-fast); }
+.role-opt:hover { border-color: var(--primary); }
+.role-opt input { position: absolute; opacity: 0; }
+.role-opt:has(input:checked) { border-color: var(--primary); background: var(--primary-50); }
+.role-opt:has(input:focus-visible) { box-shadow: var(--ring); }
+.role-opt > i { flex: none; width: 34px; height: 34px; border-radius: var(--r-md); display: grid; place-items: center; font-size: 17px; background: var(--primary-50); color: var(--primary); }
+.role-opt--warden > i { background: var(--teal-bg); color: var(--teal); }
+.role-opt:has(input:checked) > i { background: #fff; }
+.role-opt b { display: block; color: var(--navy); font-size: 14px; }
+.role-opt small { display: block; font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+/* Gate picker */
+.gate-pick { border: 0; margin: 16px 0 0; padding: 0; }
+.gate-pick-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%; }
+.gate-list { display: grid; gap: 6px; margin-top: 2px; }
+.gate-opt { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border: 1.5px solid #dfe4ee; border-radius: var(--r-md); cursor: pointer; }
+.gate-opt:hover { border-color: var(--primary); }
+.gate-opt:has(input:checked) { border-color: var(--teal); background: var(--teal-bg); }
+.gate-opt input { width: 17px; height: 17px; accent-color: var(--teal); flex: none; margin: 0; }
+.gate-opt b { color: var(--navy); font-weight: 600; }
+.gate-opt .st { margin-left: auto; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.gate-opt .st.on { color: var(--good); }
+.gate-opt .st.off { color: var(--muted); }
+.gate-pick.is-invalid .gate-opt { border-color: #f1b5b5; }
+
+@media (max-width: 767px) {
+  .pg-title { font-size: 20px; }
+  .us-table thead { display: none; }
+  .us-table, .us-table tbody { display: block; }
+  .us-table tbody { padding: 0 12px 4px; }
+  .us-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .us-table tbody td { display: block; padding: 0; border: 0; background: none !important; }
+  .us-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 4px; font-size: 11px; font-weight: 600; color: var(--muted); }
+  .us-actions { justify-content: flex-start; }
+  .us-actions .btn-x { min-height: 40px; flex: 1 1 auto; }
+  .us-actions .fld-hint { white-space: normal; }
+}
+@media (max-width: 459px) {
+  .role-pick { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header class="rg-top" id="appNav" data-page="users"></header>
+
+<main class="rg-wrap" id="main" aria-busy="true">
+  <div class="pg-head">
+    <div>
+      <h1 class="pg-title">Users</h1>
+      <p class="pg-sub">Admins see every gate and manage users. Wardens see only the gates you assign them.</p>
+    </div>
+    <button class="btn-x btn-x--primary" type="button" id="addUser" hidden><i class="bi bi-person-plus" aria-hidden="true"></i> Add user</button>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <section class="card-x us-card" id="usersCard" aria-labelledby="usersTitle">
+    <div class="card-x-head">
+      <h2 id="usersTitle"><i class="bi bi-people" aria-hidden="true"></i>People with access</h2>
+      <span class="chip" id="userCount"></span>
+    </div>
+    <div class="us-tabs"><div class="seg" role="tablist" aria-label="Filter by role" id="roleTabs"></div></div>
+    <table class="us-table">
+      <thead>
+        <tr><th>User</th><th>Role</th><th>Gates</th><th><span class="visually-hidden">Actions</span></th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="us-foot">Role and gate changes apply the next time that person loads a page. Resetting a password signs them out everywhere.</div>
+  </section>
+</main>
+
+<!-- Add / edit user -->
+<dialog class="dlg" id="userDialog" aria-labelledby="userDlgTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head">
+      <div><h2 id="userDlgTitle">Add user</h2><p id="userDlgSub">They sign in to the register with this username and password.</p></div>
+      <button class="btn-x btn-x--ghost btn-x--icon dlg-x" type="button" data-close aria-label="Close" title="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body">
+      <div class="alert-x" role="alert" id="userDlgError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+
+      <div id="credFields">
+        <div class="fld">
+          <label for="uName">Username <sup>*</sup></label>
+          <div class="inp" id="uNameBox"><i class="bi bi-person" aria-hidden="true"></i><input id="uName" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="50" placeholder="e.g. warden.boys1"></div>
+          <small class="fld-err" id="uNameErr"></small>
+          <small class="fld-hint">Letters, numbers, dot, dash or underscore. Can't be changed later.</small>
+        </div>
+        <div class="fld">
+          <label for="uPass">Password <sup>*</sup></label>
+          <div class="inp" id="uPassBox"><i class="bi bi-key" aria-hidden="true"></i><input type="password" id="uPass" autocomplete="new-password"><button class="inp-btn" type="button" data-toggle="uPass">Show</button></div>
+          <small class="fld-err" id="uPassErr"></small>
+          <small class="fld-hint">At least 8 characters. Share it with them in person.</small>
+        </div>
+      </div>
+
+      <fieldset class="role-pick" style="margin-top:16px">
+        <legend>Role <sup style="color:var(--bad)">*</sup></legend>
+        <label class="role-opt"><input type="radio" name="role" value="admin"><i class="bi bi-shield-check" aria-hidden="true"></i><span><b>Admin</b><small>Every gate. Adds users and resets passwords.</small></span></label>
+        <label class="role-opt role-opt--warden"><input type="radio" name="role" value="warden" checked><i class="bi bi-person-badge" aria-hidden="true"></i><span><b>Warden</b><small>Only the gates picked below.</small></span></label>
+      </fieldset>
+
+      <fieldset class="gate-pick" id="gatePick">
+        <legend class="gate-pick-head"><span>Gates this warden sees <sup style="color:var(--bad)">*</sup></span>
+          <button class="inp-btn" type="button" id="toggleAllGates">Select all</button></legend>
+        <div class="gate-list" id="gateList"></div>
+        <small class="fld-err" id="gateErr"></small>
+      </fieldset>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-x btn-x--ghost" type="button" data-close>Cancel</button>
+      <button class="btn-x btn-x--primary" type="submit" id="userDlgSubmit">Add user</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Reset password -->
+<dialog class="dlg" id="pwResetDialog" aria-labelledby="pwResetTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head">
+      <div><h2 id="pwResetTitle">Reset password</h2><p id="pwResetSub"></p></div>
+      <button class="btn-x btn-x--ghost btn-x--icon dlg-x" type="button" data-close aria-label="Close" title="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="dlg-body">
+      <div class="alert-x" role="alert" id="pwResetError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+      <div class="fld">
+        <label for="rPass">New password <sup>*</sup></label>
+        <div class="inp"><i class="bi bi-key" aria-hidden="true"></i><input type="password" id="rPass" autocomplete="new-password"><button class="inp-btn" type="button" data-toggle="rPass">Show</button></div>
+        <small class="fld-hint">At least 8 characters.</small>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-x btn-x--ghost" type="button" data-close>Cancel</button>
+      <button class="btn-x btn-x--primary" type="submit" id="pwResetSubmit">Reset password</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Delete -->
+<dialog class="dlg" id="deleteDialog" aria-labelledby="deleteTitle">
+  <form method="dialog" novalidate>
+    <div class="dlg-head">
+      <div><h2 id="deleteTitle">Delete user?</h2><p id="deleteSub"></p></div>
+    </div>
+    <div class="dlg-body" style="padding-top:8px">
+      <div class="alert-x" role="alert" id="deleteError" hidden><i class="bi bi-exclamation-circle" aria-hidden="true"></i><span></span></div>
+      <p style="margin:0">They lose access to the register right away. Gate punches and reports are not affected.</p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn-x btn-x--ghost" type="button" data-close>Cancel</button>
+      <button class="btn-x btn-x--danger" type="submit" id="deleteSubmit">Delete user</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="nav.js"></script>
+<script src="users.js"></script>
+</body>
+</html>

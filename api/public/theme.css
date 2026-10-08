@@ -59,7 +59,124 @@ button, input, select { font: inherit; color: inherit; }
 a { color: var(--primary); }
 :focus-visible { outline: 3px solid rgba(65, 84, 241, .45); outline-offset: 2px; border-radius: 6px; }
 [hidden] { display: none !important; }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Keeps visually-hidden labels inside scrolling tables from widening the page */
+th { position: relative; }
+
+/* App shell: top bar + nav (shared by every signed-in page) */
+.rg-wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.rg-top { position: sticky; top: 0; z-index: 20; background: rgba(255, 255, 255, .97); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.rg-top .rg-wrap { display: flex; align-items: center; gap: 12px 20px; min-height: 64px; }
+.rg-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.rg-brand > i { width: 38px; height: 38px; border-radius: var(--r-md); background: var(--primary-50); color: var(--primary); display: grid; place-items: center; font-size: 19px; }
+.rg-brand b { display: block; font: 800 16px/1.2 "Nunito", sans-serif; color: var(--navy); }
+.rg-brand small { display: block; font-size: 12px; color: var(--muted); }
+
+.rg-nav { display: flex; align-items: stretch; gap: 4px; align-self: stretch; margin-right: auto; }
+.rg-nav a {
+  position: relative; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px;
+  font-size: 14px; font-weight: 700; color: var(--muted); text-decoration: none; border-radius: 0; white-space: nowrap;
+  transition: color var(--t-fast);
+}
+.rg-nav a:hover { color: var(--primary); }
+.rg-nav a[aria-current="page"] { color: var(--primary); }
+.rg-nav a[aria-current="page"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--primary); }
+.rg-nav a > i { font-size: 16px; }
+
+.rg-account { position: relative; }
+.rg-account-btn {
+  display: flex; align-items: center; gap: 10px; padding: 4px 8px 4px 4px; border: 1px solid transparent; border-radius: var(--r-pill);
+  background: none; cursor: pointer; text-align: left; transition: background var(--t-fast), border-color var(--t-fast);
+}
+.rg-account-btn:hover, .rg-account-btn[aria-expanded="true"] { background: #f5f7ff; border-color: var(--line); }
+.rg-account-btn > .bi-chevron-down { color: var(--faint); font-size: 12px; transition: transform var(--t-fast); }
+.rg-account-btn[aria-expanded="true"] > .bi-chevron-down { transform: rotate(180deg); }
+.rg-avatar { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff; display: grid; place-items: center; font: 800 14px "Nunito", sans-serif; text-transform: uppercase; }
+.rg-avatar--warden { background: var(--teal); }
+.rg-user-text { line-height: 1.25; }
+.rg-user-text .ov { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.rg-user-text b { font-size: 13.5px; color: var(--navy); }
+
+.rg-menu {
+  position: absolute; right: 0; top: calc(100% + 8px); min-width: 240px; padding: 6px; background: #fff;
+  border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--sh-3);
+}
+.rg-menu-head { padding: 10px 12px 12px; border-bottom: 1px solid var(--line-soft); margin-bottom: 6px; }
+.rg-menu-head b { display: block; color: var(--navy); }
+.rg-menu-head span { font-size: 12.5px; color: var(--muted); }
+.rg-menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border: 0; border-radius: var(--r-sm);
+  background: none; font-size: 13.5px; font-weight: 600; color: var(--navy); cursor: pointer; text-align: left;
+}
+.rg-menu button:hover { background: var(--primary-50); color: var(--primary); }
+.rg-menu button > i { font-size: 16px; color: var(--faint); }
+.rg-menu button:hover > i { color: var(--primary); }
+
+.rg-nav .short { display: none; }
+
+/* Tablets and landscape phones: links move to their own row under the brand. */
+@media (max-width: 1099px) {
+  .rg-top .rg-wrap { flex-wrap: wrap; min-height: 0; padding-top: 10px; }
+  .rg-brand { margin-right: auto; }
+  .rg-nav { order: 3; flex-basis: 100%; margin: 0 -12px; overflow-x: auto; scrollbar-width: none; }
+  .rg-nav a { min-height: 44px; }
+}
+
+/* Phones: links become a bottom tab bar (DESIGN.md principle 7). */
+@media (max-width: 767px) {
+  .rg-wrap { padding: 0 16px; }
+  /* backdrop-filter would make the header the containing block of the fixed tab bar */
+  .rg-top { backdrop-filter: none; background: #fff; }
+  .rg-top .rg-wrap { min-height: 56px; padding-top: 0; }
+  .rg-brand small, .rg-user-text, .rg-account-btn > .bi-chevron-down { display: none; }
+  body:has(.rg-nav) { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  .rg-nav {
+    position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; margin: 0;
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; overflow: visible;
+    padding-bottom: env(safe-area-inset-bottom, 0px); background: #fff; border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 16px rgba(1, 41, 112, .06);
+  }
+  .rg-nav a { flex-direction: column; justify-content: center; gap: 2px; min-height: 60px; padding: 6px 2px; font-size: 11px; }
+  .rg-nav a > i { font-size: 20px; }
+  .rg-nav a[aria-current="page"]::after { top: -1px; bottom: auto; left: 22%; right: 22%; border-radius: 0 0 3px 3px; }
+  .rg-nav .full { display: none; }
+  .rg-nav .short { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 32px); }
+
+  /* Segmented tabs wrap instead of running off the card */
+  .seg { flex-wrap: wrap; max-width: 100%; }
+  .seg button { flex: 1 1 auto; }
+}
+@media print { .rg-nav { display: none !important; } }
+
+/* Dialog */
+.dlg {
+  width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 0; border-radius: var(--r-2xl);
+  background: #fff; color: var(--text); box-shadow: var(--sh-3);
+}
+.dlg::backdrop { background: rgba(1, 41, 112, .32); }
+.dlg form { display: flex; flex-direction: column; max-height: inherit; }
+.dlg-head { display: flex; align-items: flex-start; gap: 12px; padding: 20px 22px 4px; }
+.dlg-head h2 { margin: 0; font-size: 19px; font-weight: 800; }
+.dlg-head p { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); }
+.dlg-x { margin-left: auto; flex: none; }
+.dlg-body { padding: 16px 22px; overflow-y: auto; }
+.dlg-body > .alert-x { margin-bottom: 14px; }
+.dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px 20px; border-top: 1px solid var(--line-soft); }
+.btn-x--danger { background: var(--bad); color: #fff; }
+.btn-x--danger:hover:not(:disabled) { background: #a51f1f; }
+@media (max-width: 575px) {
+  .dlg-foot { flex-direction: column-reverse; }
+  .dlg-foot .btn-x { width: 100%; min-height: 44px; }
+}
+
+/* Toast */
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 50; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; padding: 11px 16px; border-radius: var(--r-lg);
+  background: var(--navy); color: #fff; font-size: 13.5px; font-weight: 600; box-shadow: var(--sh-3);
+}
+.toast > i { color: #7ee2a8; }
 
 /* Buttons (5.7) */
 .btn-x {
@@ -99,6 +216,7 @@ a { color: var(--primary); }
 .fld-err { display: block; margin-top: 5px; font-size: 12px; font-weight: 600; color: #d02d2d; }
 .fld-err:empty { display: none; }
 .fld-hint { display: block; margin-top: 5px; font-size: 12px; color: var(--muted); }
+.fld-err:not(:empty) + .fld-hint { display: none; }
 
 /* Chips (5.6) */
 .chip {

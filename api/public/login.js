@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  const HOME = 'register.html'; // where staff land after signing in
   const $ = (id) => document.getElementById(id);
   const form = $('loginForm');
   const user = $('username');
@@ -8,10 +9,16 @@
   const submit = $('submitBtn');
   const formError = $('formError');
 
-  // Only follow same-origin paths after sign-in.
+  // After sign-in, go to ?next= if it's a page of this app (same origin, under the folder this
+  // sign-in page is served from, e.g. /hostel/ behind a proxy) and not this page itself.
   function nextUrl() {
     const n = new URLSearchParams(location.search).get('next') || '';
-    return n.startsWith('/') && !n.startsWith('//') && !n.startsWith('/\\') ? n : '/';
+    if (!n.startsWith('/') || n.startsWith('//') || n.startsWith('/\\')) return HOME;
+    const base = location.pathname.replace(/[^/]*$/, ''); // e.g. "/hostel/"
+    const target = new URL(n, location.origin);
+    const inApp = target.origin === location.origin && target.pathname.startsWith(base);
+    const isSignIn = target.pathname === base || target.pathname === `${base}index.html`;
+    return inApp && !isSignIn ? target.pathname + target.search : HOME;
   }
 
   function showError(msg) {
@@ -47,7 +54,7 @@
     if (!validate()) return;
     setBusy(true);
     try {
-      const res = await fetch('/auth/login', {
+      const res = await fetch('auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
@@ -76,7 +83,7 @@
   });
 
   // Already signed in? Skip the form.
-  fetch('/auth/me', { credentials: 'same-origin' })
+  fetch('auth/me', { credentials: 'same-origin' })
     .then((r) => { if (r.ok) location.replace(nextUrl()); })
     .catch(() => {});
   user.focus();
