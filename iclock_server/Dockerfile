@@ -15,7 +15,8 @@ ENV CATALINA_OPTS="-Dorg.apache.catalina.connector.RECYCLE_FACADES=true \
  -Xms256m -Xmx1024m"
 
 COPY iclock /usr/local/tomcat/webapps/iclock
+COPY start.sh /usr/local/bin/start.sh
 
 EXPOSE 8080
 
-CMD ["catalina.sh", "run"]
+CMD ["/usr/local/bin/start.sh"]

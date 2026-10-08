@@ -61,10 +61,26 @@ body { padding: 24px 16px 40px; }
   .foot { padding: 0 16px 14px; }
 }
 @media print {
-  @page { size: A5; margin: 10mm; }
-  body { padding: 0; background: #fff; }
+  /* A5 leaves ~190mm of height; keep everything compact so the slip stays on one sheet. */
+  @page { size: A5 portrait; margin: 7mm; }
+  html, body { height: auto; }
+  body { padding: 0; background: #fff; font-size: 12.5px; line-height: 1.4; }
   .bar { display: none; }
-  .slip { box-shadow: none; border-color: #999; }
+  .slip { max-width: none; box-shadow: none; border-color: #999; border-radius: 10px; break-inside: avoid; page-break-inside: avoid; }
+  .slip-head { padding: 10px 14px; }
+  .slip-head > i { width: 30px; height: 30px; font-size: 16px; }
+  .slip-body { padding: 10px 14px 2px; }
+  .who .rg-avatar { width: 36px; height: 36px; font-size: 14px; }
+  .who h1 { font-size: 17px; }
+  .window { margin: 10px 0; padding: 8px 12px; }
+  .window dd { font-size: 15px; }
+  .state { margin-bottom: 10px; padding-top: 6px; padding-bottom: 6px; }
+  .facts { gap: 6px 14px; margin-bottom: 10px; }
+  .facts dd { font-size: 12.5px; }
+  .qr { margin-bottom: 10px; padding: 4px 10px 4px 4px; }
+  .qr img { width: 92px; height: 92px; }
+  .signs { gap: 22px 16px; padding: 22px 14px 10px; }
+  .foot { padding: 0 14px 8px; font-size: 10.5px; }
   * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 </style>
